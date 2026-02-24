@@ -1,0 +1,25 @@
+{
+  "emailConfig": {
+    "service": "qq",
+    "user": "your-email@qq.com",
+    "pass": "your-smtp-authorization-code",
+    "adminEmail": "admin@example.com"
+  },
+  "feishuConfig": {
+    "webhookUrl": "https://open.feishu.cn/open-apis/bot/v2/hook/your-webhook-url"
+  },
+  "llmConfig": {
+    "provider": "openai",
+    "apiKey": "your-openai-api-key",
+    "baseURL": "https://api.openai.com/v1",
+    "model": "gpt-4"
+  },
+  "unsplashApiKey": "your-unsplash-access-key",
+  "pexelsApiKey": "your-pexels-api-key",
+  "pixabayApiKey": "your-pixabay-api-key",
+  "seoConfig": {
+    "autoPublish": false,
+    "publishInterval": 24,
+    "maxArticlesPerDay": 3
+  }
+}
