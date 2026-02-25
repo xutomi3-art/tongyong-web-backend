@@ -13,7 +13,8 @@
   "brandConfig": {
     "name": "您的品牌名称",
     "description": "您的产品描述",
-    "adminTitle": "管理后台"
+    "adminTitle": "管理后台",
+    "emailSubjectPrefix": "[您的品牌] "
   },
   // ... 其他配置
 }
@@ -26,6 +27,7 @@
 | `name` | 您的品牌名称，将显示在管理后台的副标题和邮件中 | `JOTO AI` |
 | `description` | 您的产品描述，将显示在管理后台的副标题 | `AI全科阅卷系统` |
 | `adminTitle` | 管理后台的标题，将显示在浏览器标签页和后台主标题 | `JOTO管理后台` |
+| `emailSubjectPrefix` | 邮件主题前缀，用于区分系统邮件 | `[JOTO AI] ` |
 
 ### AI操作指南
 
@@ -96,3 +98,16 @@ location /admin/ {
 - **Nginx**: `location /admin/`
 
 确保Node.js和Nginx的路径配置一致，即可实现统一访问。
+
+## 5. 品牌化检查清单
+
+为了确保您的后台完全品牌化，请检查以下项目：
+
+- [ ] **`data/config.json`**
+  - [ ] `brandConfig.name`
+  - [ ] `brandConfig.description`
+  - [ ] `brandConfig.adminTitle`
+  - [ ] `brandConfig.emailSubjectPrefix`
+- [ ] **`frontend/logo.svg`** (替换为您的Logo)
+- [ ] **`frontend/favicon.ico`** (替换为您的图标)
+- [ ] **`emails/`** (如果存在，检查邮件模板)

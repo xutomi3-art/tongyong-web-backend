@@ -2,7 +2,8 @@
   "brandConfig": {
     "name": "您的品牌名称",
     "description": "您的产品描述",
-    "adminTitle": "管理后台"
+    "adminTitle": "管理后台",
+    "emailSubjectPrefix": "[您的品牌] "
   },
   "emailConfig": {
     "service": "qq",
@@ -44,8 +45,14 @@
     "rewriteRounds": 1,
     "keywords": "您的SEO关键词1,您的SEO关键词2,您的SEO关键词3"
   },
-  "adminConfig": {
-    "username": "admin",
-    "password": "请修改为您的密码"
-  }
+  "admins": [
+    {
+      "email": "test@abc.com",
+      "password": "Test123",
+      "name": "管理员",
+      "role": "admin",
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "needsPasswordChange": true
+    }
+  ]
 }

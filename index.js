@@ -284,16 +284,23 @@ app.post('/api/verify-captcha', (req, res) => {
 
 // 管理员登录
 app.post('/api/admin/login', async (req, res) => {
-  const { username, password } = req.body;
+  const { email, password } = req.body;
   const config = await getConfig();
   
-  if (username === config.adminUsername && password === config.adminPassword) {
+  // 支持新的admins数组格式
+  const admins = config.admins || [];
+  const admin = admins.find(a => a.email === email);
+  
+  if (admin && admin.password === password) {
     res.json({ 
       success: true, 
-      token: Buffer.from(`${username}:${password}`).toString('base64')
+      token: Buffer.from(`${email}:${password}`).toString('base64'),
+      needsPasswordChange: admin.needsPasswordChange || false,
+      email: admin.email,
+      name: admin.name
     });
   } else {
-    res.status(401).json({ success: false, message: '用户名或密码错误' });
+    res.status(401).json({ success: false, message: '邮箱或密码错误' });
   }
 });
 
@@ -309,11 +316,19 @@ app.get('/api/admin/verify', async (req, res) => {
   
   try {
     const decoded = Buffer.from(token, 'base64').toString('utf-8');
-    const [username, password] = decoded.split(':');
+    const [email, password] = decoded.split(':');
     const config = await getConfig();
     
-    if (username === config.adminUsername && password === config.adminPassword) {
-      res.json({ valid: true });
+    const admins = config.admins || [];
+    const admin = admins.find(a => a.email === email && a.password === password);
+    
+    if (admin) {
+      res.json({ 
+        valid: true,
+        needsPasswordChange: admin.needsPasswordChange || false,
+        email: admin.email,
+        name: admin.name
+      });
     } else {
       res.json({ valid: false });
     }
@@ -371,14 +386,24 @@ app.post('/api/admin/config', async (req, res) => {
 
 // 修改密码
 app.post('/api/admin/change-password', async (req, res) => {
-  const { oldPassword, newPassword } = req.body;
+  const { email, oldPassword, newPassword } = req.body;
   const config = await getConfig();
   
-  if (config.adminPassword !== oldPassword) {
+  const admins = config.admins || [];
+  const adminIndex = admins.findIndex(a => a.email === email);
+  
+  if (adminIndex === -1) {
+    return res.status(404).json({ success: false, message: '管理员不存在' });
+  }
+  
+  if (admins[adminIndex].password !== oldPassword) {
     return res.status(401).json({ success: false, message: '旧密码错误' });
   }
   
-  config.adminPassword = newPassword;
+  admins[adminIndex].password = newPassword;
+  admins[adminIndex].needsPasswordChange = false;
+  config.admins = admins;
+  
   await saveConfig(config);
   res.json({ success: true, message: '密码修改成功' });
 });
@@ -472,16 +497,52 @@ app.post('/api/contact', async (req, res) => {
     
     const config = await getConfig();
     
-    // 构造来源信息
-    const sourceInfo = contactData.trafficSource ? 
-      `${contactData.trafficSource.source || '直接访问'} / ${contactData.trafficSource.medium || '-'}${contactData.trafficSource.keyword ? ' / ' + contactData.trafficSource.keyword : ''}` :
-      '直接访问';
+    // 构造来源信息（支持UTM参数）
+    let sourceInfo = '直接访问';
+    let trafficType = 'direct'; // direct, organic, paid
+    let utmData = {};
+    
+    if (contactData.trafficSource) {
+      const ts = contactData.trafficSource;
+      utmData = {
+        utm_source: ts.utm_source || ts.source || '',
+        utm_medium: ts.utm_medium || ts.medium || '',
+        utm_campaign: ts.utm_campaign || ts.campaign || '',
+        utm_term: ts.utm_term || ts.keyword || '',
+        utm_content: ts.utm_content || ''
+      };
+      
+      // 判断流量类型
+      const source = utmData.utm_source.toLowerCase();
+      const medium = utmData.utm_medium.toLowerCase();
+      
+      if (medium.includes('cpc') || medium.includes('ppc') || medium.includes('paid') || medium.includes('ad')) {
+        trafficType = 'paid';
+        sourceInfo = `💰 ${utmData.utm_source || '未知'} 广告`;
+      } else if (source.includes('baidu') || source.includes('google') || source.includes('bing')) {
+        trafficType = 'organic';
+        sourceInfo = `🔍 ${utmData.utm_source} 自然搜索`;
+      } else if (source) {
+        trafficType = 'referral';
+        sourceInfo = `🔗 ${utmData.utm_source}`;
+      }
+      
+      // 添加详细信息
+      if (utmData.utm_campaign) {
+        sourceInfo += ` / ${utmData.utm_campaign}`;
+      }
+      if (utmData.utm_term) {
+        sourceInfo += ` / ${utmData.utm_term}`;
+      }
+    }
     
     // 保存到文件
     const contacts = await getContacts();
     contacts.unshift({
       ...contactData,
       source: sourceInfo,
+      trafficType: trafficType,
+      utmData: utmData,
       id: Date.now().toString(),
       submittedAt: new Date().toISOString()
     });
@@ -501,7 +562,8 @@ app.post('/api/contact', async (req, res) => {
         <p><strong>提交时间：</strong>${new Date().toLocaleString('zh-CN')}</p>
       `;
       
-      await sendEmail(config.email, '闪阅 - 新的联系表单', emailHtml);
+      const emailSubject = `${config.brandConfig?.emailSubjectPrefix || '[' + (config.brandConfig?.name || '系统') + '] '}新的联系表单`;
+      await sendEmail(config.email, emailSubject, emailHtml);
     }
     
     // 发送到飞书机器人
@@ -891,3 +953,219 @@ async function start() {
 }
 
 start();
+
+// 忘记密码 - 发送一次性密码
+app.post('/api/admin/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+    const config = await getConfig();
+    
+    const admins = config.admins || [];
+    const admin = admins.find(a => a.email === email);
+    
+    if (!admin) {
+      // 为了安全，不透露邮箱是否存在
+      return res.json({ success: true, message: '如果该邮箱存在，我们已发送一次性密码到您的邮箱' });
+    }
+    
+    // 生成6位数字一次性密码
+    const oneTimePassword = Math.floor(100000 + Math.random() * 900000).toString();
+    const expireTime = Date.now() + 15 * 60 * 1000; // 15分钟后过期
+    
+    // 保存一次性密码
+    if (!global.oneTimePasswords) {
+      global.oneTimePasswords = new Map();
+    }
+    global.oneTimePasswords.set(email, { password: oneTimePassword, expires: expireTime });
+    
+    // 发送邮件
+    if (config.emailConfig && config.emailConfig.user) {
+      const emailSubject = `${config.brandConfig?.emailSubjectPrefix || '[系统] '}一次性登录密码`;
+      const emailHtml = `
+        <h2>一次性登录密码</h2>
+        <p>您好，${admin.name || '管理员'}！</p>
+        <p>您的一次性登录密码是：<strong style="font-size: 24px; color: #4F46E5;">${oneTimePassword}</strong></p>
+        <p>此密码将在 <strong>15分钟</strong> 后过期。</p>
+        <p>如果这不是您的操作，请忽略此邮件。</p>
+        <hr>
+        <p style="color: #666; font-size: 12px;">此邮件由系统自动发送，请勿回复。</p>
+      `;
+      
+      await sendEmail(config.emailConfig.user, emailSubject, emailHtml);
+    }
+    
+    res.json({ success: true, message: '如果该邮箱存在，我们已发送一次性密码到您的邮箱' });
+  } catch (error) {
+    console.error('Error in forgot-password:', error);
+    res.status(500).json({ success: false, message: '发送失败，请稍后重试' });
+  }
+});
+
+// 使用一次性密码登录
+app.post('/api/admin/login-with-otp', async (req, res) => {
+  try {
+    const { email, oneTimePassword } = req.body;
+    
+    if (!global.oneTimePasswords || !global.oneTimePasswords.has(email)) {
+      return res.status(401).json({ success: false, message: '一次性密码无效或已过期' });
+    }
+    
+    const stored = global.oneTimePasswords.get(email);
+    
+    if (stored.expires < Date.now()) {
+      global.oneTimePasswords.delete(email);
+      return res.status(401).json({ success: false, message: '一次性密码已过期' });
+    }
+    
+    if (stored.password !== oneTimePassword) {
+      return res.status(401).json({ success: false, message: '一次性密码错误' });
+    }
+    
+    // 验证成功，删除一次性密码
+    global.oneTimePasswords.delete(email);
+    
+    const config = await getConfig();
+    const admins = config.admins || [];
+    const admin = admins.find(a => a.email === email);
+    
+    if (!admin) {
+      return res.status(404).json({ success: false, message: '管理员不存在' });
+    }
+    
+    res.json({ 
+      success: true, 
+      token: Buffer.from(`${email}:${admin.password}`).toString('base64'),
+      needsPasswordChange: true, // 使用一次性密码登录后必须修改密码
+      email: admin.email,
+      name: admin.name
+    });
+  } catch (error) {
+    console.error('Error in login-with-otp:', error);
+    res.status(500).json({ success: false, message: '登录失败，请稍后重试' });
+  }
+});
+
+
+// 获取所有管理员列表
+app.get('/api/admin/admins', async (req, res) => {
+  try {
+    const config = await getConfig();
+    const admins = config.admins || [];
+    
+    // 返回管理员列表，但不包含密码
+    const adminList = admins.map(admin => ({
+      email: admin.email,
+      name: admin.name,
+      role: admin.role,
+      createdAt: admin.createdAt,
+      needsPasswordChange: admin.needsPasswordChange
+    }));
+    
+    res.json({ success: true, admins: adminList });
+  } catch (error) {
+    console.error('Error getting admins:', error);
+    res.status(500).json({ success: false, message: '获取管理员列表失败' });
+  }
+});
+
+// 添加管理员
+app.post('/api/admin/admins', async (req, res) => {
+  try {
+    const { email, name, password } = req.body;
+    
+    if (!email || !name || !password) {
+      return res.status(400).json({ success: false, message: '邮箱、姓名和密码不能为空' });
+    }
+    
+    const config = await getConfig();
+    const admins = config.admins || [];
+    
+    // 检查邮箱是否已存在
+    if (admins.find(a => a.email === email)) {
+      return res.status(400).json({ success: false, message: '该邮箱已被使用' });
+    }
+    
+    // 添加新管理员
+    admins.push({
+      email,
+      name,
+      password,
+      role: 'admin',
+      createdAt: new Date().toISOString(),
+      needsPasswordChange: false
+    });
+    
+    config.admins = admins;
+    await saveConfig(config);
+    
+    res.json({ success: true, message: '管理员添加成功' });
+  } catch (error) {
+    console.error('Error adding admin:', error);
+    res.status(500).json({ success: false, message: '添加管理员失败' });
+  }
+});
+
+// 更新管理员信息
+app.put('/api/admin/admins/:email', async (req, res) => {
+  try {
+    const { email } = req.params;
+    const { name, password } = req.body;
+    
+    const config = await getConfig();
+    const admins = config.admins || [];
+    const adminIndex = admins.findIndex(a => a.email === email);
+    
+    if (adminIndex === -1) {
+      return res.status(404).json({ success: false, message: '管理员不存在' });
+    }
+    
+    // 更新管理员信息
+    if (name) {
+      admins[adminIndex].name = name;
+    }
+    if (password) {
+      admins[adminIndex].password = password;
+      admins[adminIndex].needsPasswordChange = false;
+    }
+    
+    config.admins = admins;
+    await saveConfig(config);
+    
+    res.json({ success: true, message: '管理员信息更新成功' });
+  } catch (error) {
+    console.error('Error updating admin:', error);
+    res.status(500).json({ success: false, message: '更新管理员信息失败' });
+  }
+});
+
+// 删除管理员
+app.delete('/api/admin/admins/:email', async (req, res) => {
+  try {
+    const { email } = req.params;
+    
+    const config = await getConfig();
+    const admins = config.admins || [];
+    
+    // 不能删除最后一个管理员
+    if (admins.length <= 1) {
+      return res.status(400).json({ success: false, message: '不能删除最后一个管理员' });
+    }
+    
+    const adminIndex = admins.findIndex(a => a.email === email);
+    
+    if (adminIndex === -1) {
+      return res.status(404).json({ success: false, message: '管理员不存在' });
+    }
+    
+    // 删除管理员
+    admins.splice(adminIndex, 1);
+    config.admins = admins;
+    await saveConfig(config);
+    
+    res.json({ success: true, message: '管理员删除成功' });
+  } catch (error) {
+    console.error('Error deleting admin:', error);
+    res.status(500).json({ success: false, message: '删除管理员失败' });
+  }
+});
+
