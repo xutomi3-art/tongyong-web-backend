@@ -720,7 +720,14 @@
                   <span>📅 ${new Date(article.createdAt).toLocaleDateString('zh-CN')}</span>
                 </div>
               </div>
-              <img src="${article.imageUrl}" alt="${article.title}" class="w-32 h-20 object-cover rounded ml-4">
+              <div class="ml-4">
+                <img src="${article.imageUrl}" alt="${article.title}" class="w-32 h-20 object-cover rounded">
+                ${article.imageSource === 'unsplash' && article.imageAuthor ? `
+                  <p class="text-xs text-gray-500 mt-1">
+                    Photo by <a href="${article.imageAuthorUrl}" target="_blank" class="text-blue-600 hover:underline">${article.imageAuthor}</a> on <a href="${article.imageUnsplashUrl}" target="_blank" class="text-blue-600 hover:underline">Unsplash</a>
+                  </p>
+                ` : ''}
+              </div>
             </div>
             <div class="mt-3 flex justify-end space-x-2">
               <button onclick="deleteArticle('${article.id}')" class="px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded">删除</button>

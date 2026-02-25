@@ -190,6 +190,9 @@ class UnsplashFetcher {
     
     console.log(`[Unsplash] ✓ 成功获取图片: ${webPath}`);
     
+    // 添加UTM参数（Unsplash要求）
+    const authorUrl = `${selectedImage.user.links.html}?utm_source=shanyue_ai&utm_medium=referral`;
+    
     return {
       id: selectedImage.id,
       source: 'unsplash',
@@ -198,7 +201,8 @@ class UnsplashFetcher {
       webPath: webPath,
       keyword: keyword,
       author: selectedImage.user.name,
-      authorUrl: selectedImage.user.links.html
+      authorUrl: authorUrl,
+      unsplashUrl: 'https://unsplash.com/?utm_source=shanyue_ai&utm_medium=referral'
     };
   }
 

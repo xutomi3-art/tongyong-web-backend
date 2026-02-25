@@ -69,7 +69,13 @@ async function getUniqueArticleImage(keyword, imageConfig = null) {
       const unsplashFetcher = new UnsplashFetcher(imageConfig.unsplashApiKey);
       const image = await unsplashFetcher.getUniqueImage(keyword);
       console.log(`✓ 使用Unsplash图片: ${image.webPath}`);
-      return image.webPath;
+      return {
+        url: image.webPath,
+        source: 'unsplash',
+        author: image.author,
+        authorUrl: image.authorUrl,
+        unsplashUrl: image.unsplashUrl
+      };
     } catch (error) {
       console.log(`Unsplash图片获取失败: ${error.message}，尝试备用方案`);
     }
@@ -90,7 +96,10 @@ async function getUniqueArticleImage(keyword, imageConfig = null) {
       });
       
       console.log(`✓ 使用AI生成图片`);
-      return imageResponse.data[0].url;
+      return {
+        url: imageResponse.data[0].url,
+        source: 'ai'
+      };
     } catch (error) {
       console.log(`AI图片生成失败: ${error.message}，使用本地图片`);
     }
@@ -99,7 +108,10 @@ async function getUniqueArticleImage(keyword, imageConfig = null) {
   // 方案3: 最后备用 - 本地图片（带去重）
   const localImage = getLocalImage(keyword);
   console.log(`✓ 使用本地图片: ${localImage}`);
-  return localImage;
+  return {
+    url: localImage,
+    source: 'local'
+  };
 }
 
 // 使用LLM生成文章
@@ -211,13 +223,17 @@ async function generateArticle(llmConfig = null, imageConfig = null, dedupConfig
   }
   
   // 生成图片（优先Unsplash，备用AI生成，最后本地图片）
-  imageUrl = await getUniqueArticleImage(keyword, imageConfig);
+  const imageData = await getUniqueArticleImage(keyword, imageConfig);
   
   return {
     id: Date.now().toString(),
     title: articleData.title,
     content: articleData.content,
-    imageUrl: imageUrl,
+    imageUrl: imageData.url || imageData,  // 兼容旧格式
+    imageSource: imageData.source,
+    imageAuthor: imageData.author,
+    imageAuthorUrl: imageData.authorUrl,
+    imageUnsplashUrl: imageData.unsplashUrl,
     keyword: keyword,
     createdAt: new Date().toISOString(),
     published: true,
@@ -268,8 +284,8 @@ async function generateRewrittenArticle(llmConfig = null, imageConfig = null, re
     console.log(`新内容长度: ${rewrittenData.content.length} 字`);
     
     // 4. 生成图片（优先Unsplash，备用AI生成，最后本地图片）
-    console.log(`\n步頤4: 生成配图...`);
-    const imageUrl = await getUniqueArticleImage(keyword, imageConfig);
+    console.log(`\n步骤4: 生成配图...`);
+    const imageData = await getUniqueArticleImage(keyword, imageConfig);
     
     console.log(`========== 搜索改写文章生成完成 ==========\n`);
     
@@ -277,7 +293,11 @@ async function generateRewrittenArticle(llmConfig = null, imageConfig = null, re
       id: Date.now().toString() + '_rewritten',
       title: rewrittenData.title,
       content: rewrittenData.content,
-      imageUrl: imageUrl,
+      imageUrl: imageData.url || imageData,  // 兼容旧格式
+      imageSource: imageData.source,
+      imageAuthor: imageData.author,
+      imageAuthorUrl: imageData.authorUrl,
+      imageUnsplashUrl: imageData.unsplashUrl,
       keyword: keyword,
       createdAt: new Date().toISOString(),
       published: true,
