@@ -10,8 +10,32 @@ const execPromise = util.promisify(exec);
  */
 async function getSSLStatus() {
   try {
-    // 尝试使用openssl获取证书信息
-    const domain = process.env.DOMAIN || 'localhost';
+    // 自动检测域名：从 /etc/letsencrypt/live/ 目录中查找
+    let domain = process.env.DOMAIN;
+    
+    if (!domain) {
+      try {
+        const { stdout } = await execPromise('ls /etc/letsencrypt/live/ | grep -v README');
+        const domains = stdout.trim().split('\n').filter(d => d && d !== 'README');
+        if (domains.length > 0) {
+          domain = domains[0]; // 使用第一个找到的域名
+        }
+      } catch (e) {
+        domain = 'localhost';
+      }
+    }
+    
+    if (!domain || domain === 'localhost') {
+      return {
+        success: true,
+        data: {
+          domain: 'localhost',
+          expiry: '未安装证书',
+          daysLeft: 0,
+          autoRenew: false
+        }
+      };
+    }
     
     try {
       // 检查证书文件是否存在

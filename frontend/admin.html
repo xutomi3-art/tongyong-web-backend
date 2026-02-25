@@ -611,9 +611,6 @@
             <button onclick="renewSSL()" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition">
               🔄 手动续订证书
             </button>
-            <button onclick="checkSSLStatus()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
-              🔍 检查证书状态
-            </button>
           </div>
           
           <!-- 说明信息 -->
@@ -710,6 +707,11 @@
     // 页面加载时初始化
     window.addEventListener('DOMContentLoaded', () => {
       loadConfig();
+      
+      // 自动检查SSL证书状态
+      setTimeout(() => {
+        checkSSLStatus();
+      }, 500);
       
       // 绑定Unsplash测试按钮事件（修复点击无反应的问题）
       setTimeout(() => {
