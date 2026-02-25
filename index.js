@@ -199,14 +199,15 @@ async function sendEmail(to, subject, html) {
     const config = await getConfig();
     
     // 优先使用配置的SMTP，否则使用环境变量
-    const port = config.smtpPort || parseInt(process.env.SMTP_PORT || '587');
+    const emailCfg = config.emailConfig || {};
+    const port = emailCfg.port || parseInt(process.env.SMTP_PORT || '587');
     const smtpConfig = {
-      host: config.smtpHost || process.env.SMTP_HOST || 'smtp.gmail.com',
+      host: emailCfg.host || process.env.SMTP_HOST || 'smtp.gmail.com',
       port: port,
       secure: port === 465, // 465端口使用SSL，其他端口使用STARTTLS
       auth: {
-        user: config.smtpUser || process.env.EMAIL_USER,
-        pass: config.smtpPassword || process.env.EMAIL_PASS,
+        user: emailCfg.user || process.env.EMAIL_USER,
+        pass: emailCfg.pass || process.env.EMAIL_PASS,
       },
     };
     
@@ -219,7 +220,7 @@ async function sendEmail(to, subject, html) {
     const transporter = nodemailer.createTransport(smtpConfig);
     
     await transporter.sendMail({
-      from: config.smtpFrom || smtpConfig.auth.user,
+      from: emailCfg.from || smtpConfig.auth.user,
       to,
       subject,
       html,
