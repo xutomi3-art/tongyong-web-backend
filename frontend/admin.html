@@ -727,8 +727,29 @@ sudo certbot renew --dry-run</code></pre>
     // 测试飞书Webhook
     async function testSMTP() {
       showStatus('⏳ 正在发送测试邮件...', 'info');
-      await saveMessageConfig();
       try {
+        // 先保存配置，但不显示保存结果
+        const configData = {
+          email: document.getElementById('email').value,
+          smtpHost: document.getElementById('smtpHost').value,
+          smtpPort: parseInt(document.getElementById('smtpPort').value) || 465,
+          smtpUser: document.getElementById('smtpUser').value,
+          smtpPassword: document.getElementById('smtpPassword').value,
+          smtpFrom: document.getElementById('smtpFrom').value,
+          feishuWebhook: document.getElementById('feishuWebhook').value,
+          feishuAppId: document.getElementById('feishuAppId').value,
+          feishuAppSecret: document.getElementById('feishuAppSecret').value,
+          feishuTableUrl: document.getElementById('feishuTableUrl').value
+        };
+        
+        // 保存配置
+        await fetchWithAuth(`${API_BASE}/admin/config`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(configData)
+        });
+        
+        // 发送测试邮件
         const response = await fetchWithAuth(`${API_BASE}/admin/test-smtp`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' }
