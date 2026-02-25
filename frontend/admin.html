@@ -412,17 +412,29 @@
         <div class="mt-8 p-6 bg-green-50 rounded-lg">
           <h3 class="text-lg font-semibold text-gray-800 mb-4">🔐 SSL 证书管理</h3>
           
-          <div id="certificateInfo" class="space-y-4">
-            <p class="text-gray-500">加载中...</p>
-          </div>
+          <div class="space-y-4">
+            <p class="text-gray-600">
+              请使用 <strong>Let's Encrypt</strong> 或其他SSL证书提供商为您的域名申请免费SSL证书。
+            </p>
+            <div class="bg-white p-4 rounded border border-green-200">
+              <h4 class="font-medium text-gray-800 mb-2">📚 推荐工具：</h4>
+              <ul class="list-disc list-inside space-y-1 text-sm text-gray-600">
+                <li><strong>Certbot</strong>: Let's Encrypt 官方工具，自动化申请和更新</li>
+                <li><strong>acme.sh</strong>: 轻量级Shell脚本，支持多种DNS提供商</li>
+                <li><strong>云服务商</strong>: 阿里云、腾讯云等提供免费SSL证书申请服务</li>
+              </ul>
+            </div>
+            <div class="bg-blue-50 p-4 rounded border border-blue-200">
+              <h4 class="font-medium text-gray-800 mb-2">👨‍💻 安装示例（Certbot）：</h4>
+              <pre class="bg-gray-800 text-green-400 p-3 rounded text-xs overflow-x-auto"><code># 安装Certbot
+sudo apt install certbot python3-certbot-nginx
 
-          <div class="mt-6 flex space-x-4">
-            <button onclick="renewCertificate()" class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium">
-              🔄 手动更新证书
-            </button>
-            <button onclick="loadCertificateInfo()" class="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition font-medium">
-              🔍 刷新证书信息
-            </button>
+# 申请证书（替换为您的域名）
+sudo certbot --nginx -d your-domain.com
+
+# 设置自动更新
+sudo certbot renew --dry-run</code></pre>
+            </div>
           </div>
         </div>
       </div>
@@ -433,7 +445,7 @@
   </div>
 
   <script>
-    const API_BASE = 'https://shanyue.jotoai.com/api';
+    const API_BASE = '/api';
     let config = {};
     let articles = [];
 
@@ -459,8 +471,6 @@
           loadArticles();
         } else if (tab === 'contacts') {
           loadContacts();
-        } else if (tab === 'system') {
-          loadCertificateInfo();
         }
       });
     });
@@ -849,94 +859,7 @@
       }
     }
 
-    // 加载SSL证书信息
-    async function loadCertificateInfo() {
-      try {
-        const certInfoEl = document.getElementById('certificateInfo');
-        certInfoEl.innerHTML = '<p class="text-gray-500">加载中...</p>';
-        
-        const response = await fetch(`${API_BASE}/admin/certificate-info`);
-        const result = await response.json();
-        
-        if (result.success && result.certificate) {
-          const cert = result.certificate;
-          const expiryDate = new Date(cert.validTo);
-          const now = new Date();
-          const daysLeft = Math.ceil((expiryDate - now) / (1000 * 60 * 60 * 24));
-          
-          let statusColor = 'green';
-          let statusText = '正常';
-          if (daysLeft < 7) {
-            statusColor = 'red';
-            statusText = '即将过期';
-          } else if (daysLeft < 30) {
-            statusColor = 'yellow';
-            statusText = '即将过期';
-          }
-          
-          certInfoEl.innerHTML = `
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label class="text-sm font-medium text-gray-500">域名</label>
-                <p class="text-gray-800 font-medium">${cert.domain || '-'}</p>
-              </div>
-              <div>
-                <label class="text-sm font-medium text-gray-500">状态</label>
-                <p class="text-${statusColor}-600 font-medium">${statusText}</p>
-              </div>
-              <div>
-                <label class="text-sm font-medium text-gray-500">颁发日期</label>
-                <p class="text-gray-800">${new Date(cert.validFrom).toLocaleDateString('zh-CN')}</p>
-              </div>
-              <div>
-                <label class="text-sm font-medium text-gray-500">过期日期</label>
-                <p class="text-gray-800">${expiryDate.toLocaleDateString('zh-CN')}</p>
-              </div>
-              <div class="md:col-span-2">
-                <label class="text-sm font-medium text-gray-500">剩余天数</label>
-                <p class="text-2xl font-bold text-${statusColor}-600">${daysLeft} 天</p>
-                ${daysLeft < 30 ? '<p class="text-sm text-yellow-600 mt-1">⚠️ 建议尽快更新证书</p>' : ''}
-              </div>
-              <div class="md:col-span-2">
-                <label class="text-sm font-medium text-gray-500">颁发机构</label>
-                <p class="text-gray-800">${cert.issuer || '-'}</p>
-              </div>
-            </div>
-          `;
-        } else {
-          certInfoEl.innerHTML = '<p class="text-red-500">无法获取证书信息</p>';
-        }
-      } catch (error) {
-        document.getElementById('certificateInfo').innerHTML = 
-          '<p class="text-red-500">加载失败: ' + error.message + '</p>';
-      }
-    }
 
-    // 手动更新SSL证书
-    async function renewCertificate() {
-      if (!confirm('确定要更新SSL证书吗？这可能需要几分钟时间。')) {
-        return;
-      }
-      
-      showStatus('⏳ 正在更新SSL证书，请稍候...', 'info');
-      
-      try {
-        const response = await fetch(`${API_BASE}/admin/renew-certificate`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' }
-        });
-        
-        const result = await response.json();
-        if (result.success) {
-          showStatus('✅ SSL证书更新成功！', 'success');
-          loadCertificateInfo();
-        } else {
-          showStatus('❌ 更新失败: ' + (result.message || '未知错误'), 'error');
-        }
-      } catch (error) {
-        showStatus('❌ 更新失败: ' + error.message, 'error');
-      }
-    }
 
     // 退出登录
     function logout() {

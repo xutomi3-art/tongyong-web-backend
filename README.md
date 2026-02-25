@@ -71,6 +71,7 @@
 
 ## 📚 文档
 
+- [数据初始化指南](./DATA_SETUP.md) - ⚠️ **必读**：首次部署后如何初始化配置和数据
 - [部署指南](./DEPLOYMENT.md) - 详细的生产环境部署步骤
 - [API文档](./API.md) - 完整的API接口说明
 - [品牌定制指南](./BRANDING.md) - 如何定制品牌信息
@@ -98,37 +99,33 @@ cd tongyong-web-backend
 npm install
 ```
 
-### 4. 创建配置文件
+### 4. 初始化配置和数据
 
-首先，创建`data`目录，然后将`data/config.example.json`复制一份并重命名为`data/config.json`。
+⚠️ **重要**：首次部署后，必须初始化配置文件和数据文件。
 
 ```bash
+# 创建数据目录
 mkdir data
+
+# 复制配置示例文件
 cp data/config.example.json data/config.json
+
+# 创建空的数据文件
+echo "[]" > data/messages.json
+echo "[]" > data/articles.json
 ```
 
-接着，根据你的实际情况修改`data/config.json`文件，填入正确的API密钥和服务地址。
+然后编辑 `data/config.json`，填入您的实际配置：
 
-```json
-{
-  "emailConfig": {
-    "service": "qq",
-    "user": "your-email@qq.com",
-    "pass": "your-smtp-authorization-code",
-    "adminEmail": "admin@example.com"
-  },
-  "feishuConfig": {
-    "webhookUrl": "your-feishu-webhook-url"
-  },
-  "llmConfig": {
-    "apiKey": "your-openai-api-key"
-  },
-  "unsplashApiKey": "your-unsplash-access-key",
-  // ... 其他配置
-}
-```
+- **品牌信息**：修改 `brandConfig`
+- **邮件配置**：填入SMTP服务器和授权码
+- **LLM API**：填入OpenAI或其他LLM的API密钥
+- **Unsplash API**：填入Unsplash Access Key
+- **管理员密码**：修改默认密码
 
-> **重要提示**: `data/config.json`文件包含敏感信息，已被添加到`.gitignore`中，不会被提交到版本库。
+📚 **详细步骤请参考**：[DATA_SETUP.md](./DATA_SETUP.md)
+
+> **安全提示**: `data/config.json` 包含敏感信息，已被 `.gitignore` 忽略，不会提交到Git仓库。
 
 ### 5. 启动服务
 
@@ -136,15 +133,21 @@ cp data/config.example.json data/config.json
 node index.js
 ```
 
-服务默认在`3000`端口启动。你可以在`index.js`中修改端口号。
+服务默认在 `3000` 端口启动。您可以通过环境变量 `PORT` 修改端口：
+
+```bash
+PORT=8080 node index.js
+```
 
 ### 6. 访问管理后台
 
-启动服务后，在浏览器中访问管理后台界面：
+启动服务后，在浏览器中访问登录页面：
 
 ```
-http://localhost:3000/admin/admin.html
+http://localhost:3000/admin/login.html
 ```
+
+使用您在 `data/config.json` 中设置的管理员账号登录（默认用户名：`admin`）。
 
 **管理后台功能**：
 - **留言配置**: 配置邮件通知、SMTP服务器、飞书集成

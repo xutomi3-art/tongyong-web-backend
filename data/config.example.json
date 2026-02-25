@@ -6,12 +6,19 @@
   },
   "emailConfig": {
     "service": "qq",
+    "host": "smtp.qq.com",
+    "port": 465,
+    "secure": true,
     "user": "your-email@qq.com",
     "pass": "your-smtp-authorization-code",
+    "from": "your-email@qq.com",
     "adminEmail": "admin@example.com"
   },
   "feishuConfig": {
-    "webhookUrl": "https://open.feishu.cn/open-apis/bot/v2/hook/your-webhook-url"
+    "webhookUrl": "",
+    "appId": "",
+    "appSecret": "",
+    "tableUrl": ""
   },
   "llmConfig": {
     "provider": "openai",
@@ -19,12 +26,26 @@
     "baseURL": "https://api.openai.com/v1",
     "model": "gpt-4"
   },
-  "unsplashApiKey": "your-unsplash-access-key",
-  "pexelsApiKey": "your-pexels-api-key",
-  "pixabayApiKey": "your-pixabay-api-key",
+  "imageConfig": {
+    "unsplashApiKey": "",
+    "useAI": false,
+    "aiApiKey": "",
+    "enableDeduplication": true,
+    "deduplicationWindow": 5
+  },
   "seoConfig": {
     "autoPublish": false,
     "publishInterval": 24,
-    "maxArticlesPerDay": 3
+    "publishTime": "09:00",
+    "postsPerDay": 1,
+    "aiArticleCount": 1,
+    "rewriteArticleCount": 0,
+    "enableSearchRewrite": false,
+    "rewriteRounds": 1,
+    "keywords": "您的SEO关键词1,您的SEO关键词2,您的SEO关键词3"
+  },
+  "adminConfig": {
+    "username": "admin",
+    "password": "请修改为您的密码"
   }
 }
