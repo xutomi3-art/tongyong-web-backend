@@ -244,36 +244,158 @@ server {
 - ✅ 前端React应用不受影响，继续使用 `/` 路径
 - ✅ API请求通过 `/api/` 正常转发到后端
 
-### 测试验证
+### ⚠️ 重要：前端项目集成要求
 
-1. 访问 `https://域名/admin/login.html` 应该显示登录页面
-2. 访问 `https://域名/` 应该显示前端React应用
-3. 访问 `https://域名/api/admin/config` 应该返回API响应
+**如果您的前端项目使用了客户端路由（如React Router、Vue Router、Next.js等），必须配置路由排除 `/admin/` 路径。**
 
----
+#### 为什么需要这样做？
 
-## 📦 问题3: 缺失必要的模块文件
+前端SPA应用的客户端路由会在浏览器中拦截所有URL，即使Nginx正确返回了后台管理系统的HTML文件，前端路由也会重新渲染自己的页面，导致后台管理系统无法访问。
 
-### 问题描述
+#### 各框架配置示例
 
-部署时服务启动失败，报错提示多个模块文件不存在：
-- `captcha.js`
-- `cert-manager.js`
-- `article-rewriter.js`
-- `feishu-integration.js`
-
-### 根本原因
-
-这些模块在 `index.js` 中被引用，但文件本身未创建或未提交到Git仓库。
-
-### 解决方案
-
-创建所有缺失的模块文件，提供基本实现：
-
-#### 1. `captcha.js` - 验证码生成
+**React Router v6**
 
 ```javascript
-function generateCaptchaText(length = 6) {
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+
+// 在路由配置之前添加检查
+if (window.location.pathname.startsWith('/admin/')) {
+  // 不要初始化React Router，让浏览器直接加载后台管理系统
+  throw new Error('Admin path detected');
+}
+
+const router = createBrowserRouter([
+  // 您的路由配置
+  // 注意：不要为 /admin/* 创建任何路由
+]);
+
+function App() {
+  return <RouterProvider router={router} />;
+}
+```
+
+**Vue Router**
+
+```javascript
+import { createRouter, createWebHistory } from 'vue-router';
+
+const router = createRouter({
+  history: createWebHistory(),
+  routes: [
+    // 您的路由配置
+    // 注意：不要为 /admin/* 创建任何路由
+  ]
+});
+
+// 添加全局前置守卫
+router.beforeEach((to, from, next) => {
+  // 如果访问 /admin/ 路径，不要拦截
+  if (to.path.startsWith('/admin/')) {
+    // 让浏览器直接处理，不要使用Vue Router
+    window.location.href = to.fullPath;
+    return;
+  }
+  next();
+});
+```
+
+**Next.js**
+
+在 `next.config.js` 中配置：
+
+```javascript
+module.exports = {
+  async rewrites() {
+    return {
+      beforeFiles: [
+        // 不要重写 /admin/ 路径
+        {
+          source: '/admin/:path*',
+          destination: '/admin/:path*',
+          has: [
+            {
+              type: 'header',
+              key: 'x-skip-next',
+            },
+          ],
+        },
+      ],
+    };
+  },
+};
+```
+
+或者在 `middleware.ts` 中：
+
+```typescript
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+
+export function middleware(request: NextRequest) {
+  // 如果是 /admin/ 路径，直接返回，不处理
+  if (request.nextUrl.pathname.startsWith('/admin/')) {
+    return NextResponse.next();
+  }
+}
+```
+
+#### 通用解决方案（适用于任何框架）
+
+在您的前端项目的 `index.html` 中，在所有脚本加载之前添加：
+
+```html
+<!DOCTYPE html>
+<html>
+  <head>
+    <!-- 在所有脚本之前添加这段代码 -->
+    <script>
+      // 检查是否访问后台管理系统
+      if (window.location.pathname.startsWith('/admin/')) {
+        // 阻止前端框架初始化
+        window.__ADMIN_PATH__ = true;
+        // 可选：如果需要，可以抛出错误阻止后续脚本执行
+        throw new Error('Admin path detected, frontend framework should not initialize');
+      }
+    </script>
+    
+    <!-- 您的其他脚本 -->
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
+```
+
+#### 🤖 致AI助手：部署指导
+
+**如果您是AI助手，正在帮助用户部署这个后台管理系统，请注意：**
+
+1. **必须检查前端项目是否使用了客户端路由**
+   - 如果是React/Vue/Angular等SPA应用，几乎肯定使用了客户端路由
+   - 如果是Next.js/Nuxt.js，也需要特殊配置
+
+2. **必须主动告知用户需要修改前端代码**
+   - 不要假设用户会自己发现这个问题
+   - 提供具体的代码示例（使用上面的框架示例）
+   - 解释为什么需要这样做
+
+3. **部署顺序很重要**
+   - 先配置Nginx（确保 `/admin/` 在 `/` 之前）
+   - 再修改前端代码（添加路由排除）
+   - 最后重新构建并部署前端
+
+4. **测试验证是必须的**
+   - 访问 `/admin/login.html` 应该显示后台登录页
+   - 在浏览器开发者工具中检查Network面板，确认没有加载前端框架的JS文件
+   - 如果仍然显示前端页面，说明前端路由配置未生效
+
+5. **这是最终解决方案，不是临时workaround**
+   - 不要尝试使用JavaScript注入或其他hack方法
+   - 必须修改前端源代码并重新构建
+   - 这是保证后台系统可以服务于多个前端项目的正确方法
+```
+
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let text = '';
   for (let i = 0; i < length; i++) {
