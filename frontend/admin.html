@@ -1,0 +1,1083 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>闪阅管理后台</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    }
+    .tab-button {
+      transition: all 0.3s ease;
+    }
+    .tab-button.active {
+      border-bottom-color: #7c3aed;
+      color: #7c3aed;
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
+  </style>
+</head>
+<body class="bg-gray-50">
+  <!-- 顶部导航 -->
+  <div class="bg-gradient-to-r from-purple-600 to-blue-600 text-white">
+    <div class="max-w-7xl mx-auto px-4 py-6">
+      <div class="flex justify-between items-center">
+        <div>
+          <h1 class="text-3xl font-bold">管理后台</h1>
+          <p class="text-purple-100 mt-1">闪阅 AI 全科阅卷系统</p>
+        </div>
+        <button onclick="logout()" class="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition">
+          退出登录
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 主容器 -->
+  <div class="max-w-7xl mx-auto px-4 py-8">
+    <!-- 标签导航 -->
+    <div class="bg-white rounded-t-lg shadow-md">
+      <div class="border-b border-gray-200">
+        <nav class="flex space-x-8 px-6" style="overflow-x: auto;">
+          <button class="tab-button active px-4 py-4 font-medium border-b-2 border-transparent whitespace-nowrap" data-tab="message">
+            📧 留言配置
+          </button>
+          <button class="tab-button px-4 py-4 font-medium border-b-2 border-transparent whitespace-nowrap" data-tab="contacts">
+            💬 留言管理
+          </button>
+          <button class="tab-button px-4 py-4 font-medium border-b-2 border-transparent whitespace-nowrap" data-tab="article">
+            📝 文章管理
+          </button>
+          <button class="tab-button px-4 py-4 font-medium border-b-2 border-transparent whitespace-nowrap" data-tab="system">
+            🔒 系统设置
+          </button>
+        </nav>
+      </div>
+    </div>
+
+    <!-- 内容区域 -->
+    <div class="bg-white rounded-b-lg shadow-md p-6">
+      <!-- 留言配置 -->
+      <div id="tab-message" class="tab-content active">
+        <h2 class="text-2xl font-bold text-gray-800 mb-6">留言配置</h2>
+        
+        <!-- 接收邮箱 -->
+        <div class="mb-8 p-6 bg-blue-50 rounded-lg">
+          <h3 class="text-lg font-semibold text-gray-800 mb-4">📬 接收邮箱</h3>
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">邮箱地址</label>
+            <input type="email" id="email" placeholder="admin@example.com" 
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+            <p class="mt-2 text-sm text-gray-600">用户提交联系表单后，通知将发送到此邮箱</p>
+          </div>
+        </div>
+
+        <!-- SMTP 配置 -->
+        <div class="mb-8 p-6 bg-gray-50 rounded-lg">
+          <h3 class="text-lg font-semibold text-gray-800 mb-4">⚙️ SMTP 服务器配置</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">SMTP 服务器</label>
+              <input type="text" id="smtpHost" placeholder="smtp.163.com" 
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">端口</label>
+              <input type="number" id="smtpPort" placeholder="465" 
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">用户名</label>
+              <input type="text" id="smtpUser" placeholder="your_email@163.com" 
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">密码/授权码</label>
+              <input type="password" id="smtpPassword" placeholder="••••••••" 
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+            </div>
+            <div class="md:col-span-2">
+              <label class="block text-sm font-medium text-gray-700 mb-2">发件人地址</label>
+              <input type="email" id="smtpFrom" placeholder="noreply@example.com" 
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+            </div>
+          </div>
+        </div>
+
+        <!-- 飞书集成 -->
+        <div class="mb-8 p-6 bg-green-50 rounded-lg">
+          <h3 class="text-lg font-semibold text-gray-800 mb-4">🚀 飞书集成</h3>
+          
+          <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-700 mb-2">飞书机器人 Webhook</label>
+            <input type="text" id="feishuWebhook" placeholder="https://open.feishu.cn/open-apis/bot/v2/hook/..." 
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 font-mono text-sm">
+            <p class="mt-2 text-sm text-gray-600">用户提交表单时发送通知到飞书群聊</p>
+          </div>
+
+          <div class="border-t border-green-200 pt-4">
+            <h4 class="font-medium text-gray-800 mb-3">飞书多维表格同步</h4>
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">App ID</label>
+                <input type="text" id="feishuAppId" placeholder="cli_xxxxxxxxxxxxxxxx" 
+                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 font-mono text-sm">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">App Secret</label>
+                <input type="password" id="feishuAppSecret" placeholder="••••••••••••••••" 
+                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 font-mono text-sm">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">多维表格 URL</label>
+                <input type="text" id="feishuTableUrl" placeholder="https://xxx.feishu.cn/base/xxxxx?table=xxxxx" 
+                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 font-mono text-sm">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 按钮组 -->
+        <div class="flex justify-end space-x-3">
+          <button onclick="testFeishuWebhook()" class="px-6 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition">
+            测试飞书 Webhook
+          </button>
+          <button onclick="testFeishuTable()" class="px-6 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition">
+            测试飞书表格
+          </button>
+          <button onclick="saveMessageConfig()" class="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-medium">
+            保存配置
+          </button>
+        </div>
+      </div>
+
+      <!-- 留言管理 -->
+      <div id="tab-contacts" class="tab-content">
+        <h2 class="text-2xl font-bold text-gray-800 mb-6">留言管理</h2>
+        
+        <div id="contactsList" class="space-y-4">
+          <p class="text-gray-500 text-center py-8">加载中...</p>
+        </div>
+      </div>
+
+      <!-- 文章管理 -->
+      <div id="tab-article" class="tab-content">
+        <h2 class="text-2xl font-bold text-gray-800 mb-6">文章管理</h2>
+        
+        <!-- AI配置 -->
+        <div class="mb-8 p-6 bg-purple-50 rounded-lg">
+          <h3 class="text-lg font-semibold text-gray-800 mb-4">🤖 LLM 模型配置</h3>
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">API Key</label>
+              <input type="password" id="llmApiKey" placeholder="sk-..." 
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 font-mono text-sm">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">API Endpoint</label>
+              <input type="text" id="llmApiEndpoint" placeholder="https://api.openai.com/v1" 
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 font-mono text-sm">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">模型名称</label>
+              <input type="text" id="llmModel" placeholder="gpt-4.1-mini" 
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+            </div>
+          </div>
+          <div class="mt-4 flex justify-end space-x-3">
+            <button onclick="testLLM()" class="px-6 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition">
+              测试连接
+            </button>
+          </div>
+        </div>
+
+        <!-- Unsplash图片配置 -->
+        <div class="mb-8 p-6 bg-blue-50 rounded-lg">
+          <h3 class="text-lg font-semibold text-gray-800 mb-4">📸 Unsplash 图片配置</h3>
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Access Key</label>
+              <input type="password" id="unsplashApiKey" placeholder="输入您的Unsplash Access Key" 
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-mono text-sm">
+              <p class="mt-2 text-sm text-gray-600">
+                📝 如何获取：访问 <a href="https://unsplash.com/developers" target="_blank" class="text-blue-600 hover:underline">Unsplash Developers</a>，创建应用后获取 Access Key
+              </p>
+            </div>
+            <div class="p-4 bg-white rounded-lg border border-blue-200">
+              <h4 class="font-medium text-gray-800 mb-2">📊 使用统计</h4>
+              <div class="space-y-1 text-sm text-gray-600">
+                <p>已使用图片数量: <span id="unsplashUsedCount" class="font-semibold text-blue-600">0</span></p>
+                <p>免费额度: 50次/小时</p>
+              </div>
+            </div>
+          </div>
+          <div class="mt-4 flex justify-end space-x-3">
+            <button onclick="clearUnsplashImages()" class="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition">
+              清空使用记录
+            </button>
+            <button onclick="testUnsplash()" class="px-6 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition">
+              测试连接
+            </button>
+          </div>
+        </div>
+        
+        <!-- 搜索改写功能 -->
+        <div class="mb-8 p-6 bg-purple-50 rounded-lg">
+          <h3 class="text-lg font-semibold text-gray-800 mb-4">⏰ 自动发布 SEO 文章</h3>
+          
+          <div class="mb-6">
+            <label class="flex items-center cursor-pointer">
+              <input type="checkbox" id="autoPostEnabled" class="w-5 h-5 text-purple-600 rounded focus:ring-purple-500">
+              <span class="ml-3 text-lg font-medium text-gray-900">启用自动发布</span>
+            </label>
+            <p class="mt-2 ml-8 text-sm text-gray-600">开启后，系统将按照设定的时间和频率自动生成并发布SEO文章</p>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">发布时间</label>
+              <input type="time" id="autoPostTime" 
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+              <p class="mt-1 text-sm text-gray-500">每天在此时间发布</p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">AI文章数量</label>
+              <div class="flex items-center space-x-2">
+                <input type="number" id="aiArticleCount" min="0" max="10" 
+                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                <span class="text-gray-600">篇</span>
+              </div>
+              <p class="mt-1 text-sm text-gray-500">AI原创生成的文章数量</p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">改写文章数量</label>
+              <div class="flex items-center space-x-2">
+                <input type="number" id="rewriteArticleCount" min="0" max="10" 
+                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                <span class="text-gray-600">篇</span>
+              </div>
+              <p class="mt-1 text-sm text-gray-500">搜索改写的文章数量</p>
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">发布间隔</label>
+            <div class="flex items-center space-x-2">
+              <input type="number" id="autoPostInterval" min="1" max="168" 
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500" style="max-width: 200px;">
+              <span class="text-gray-600">小时</span>
+            </div>
+            <p class="mt-1 text-sm text-gray-500">两次发布之间的最小间隔时间（24小时 = 每天一次）</p>
+          </div>
+
+          <!-- 搜索改写功能 -->
+          <div class="mb-6 p-4 bg-green-50 border-2 border-green-200 rounded-lg">
+            <div class="flex items-start mb-3">
+              <span class="text-2xl mr-2">🔄</span>
+              <div class="flex-1">
+                <label class="flex items-center cursor-pointer">
+                  <input type="checkbox" id="enableSearchRewrite" class="w-5 h-5 text-green-600 rounded focus:ring-green-500">
+                  <span class="ml-3 text-lg font-medium text-gray-900">启用搜索改写文章</span>
+                </label>
+                <p class="mt-2 text-sm text-gray-600">开启后，系统会从网上搜索相关文章并深度改写，降低AI特征，提高原创度</p>
+              </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">改写轮数</label>
+                <select id="rewriteRounds" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
+                  <option value="2">2轮（快速，约2分钟）</option>
+                  <option value="3" selected>3轮（推荐，约3分钟）</option>
+                  <option value="4">4轮（深度，约4分钟）</option>
+                </select>
+                <p class="mt-1 text-sm text-gray-500">改写轮数越多，原创度越高，降AI效果越好</p>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">已使用URL数量</label>
+                <div class="flex items-center space-x-2">
+                  <span id="usedUrlCount" class="text-2xl font-bold text-green-600">0</span>
+                  <button onclick="clearUsedUrls()" class="px-3 py-1 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200 transition">
+                    清空历史
+                  </button>
+                </div>
+                <p class="mt-1 text-sm text-gray-500">已使用的文章链接会被自动排除</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- 图片去重功能 -->
+          <div class="mb-6 p-4 bg-blue-50 border-2 border-blue-200 rounded-lg">
+            <div class="flex items-start mb-3">
+              <span class="text-2xl mr-2">🎨</span>
+              <div class="flex-1">
+                <label class="flex items-center cursor-pointer">
+                  <input type="checkbox" id="enableImageDeduplication" class="w-5 h-5 text-blue-600 rounded focus:ring-blue-500">
+                  <span class="ml-3 text-lg font-medium text-gray-900">启用图片去重</span>
+                </label>
+                <p class="mt-2 text-sm text-gray-600">避免相邻文章使用相同的配图，提升视觉体验和专业度</p>
+              </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">去重窗口大小</label>
+                <select id="deduplicationWindow" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                  <option value="3">3篇文章</option>
+                  <option value="5" selected>5篇文章（推荐）</option>
+                  <option value="8">8篇文章</option>
+                  <option value="10">10篇文章</option>
+                </select>
+                <p class="mt-1 text-sm text-gray-500">系统会确保最近N篇文章不使用相同图片</p>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">当前图片库</label>
+                <div class="flex items-center space-x-2">
+                  <span class="text-2xl font-bold text-blue-600">5</span>
+                  <span class="text-sm text-gray-600">张图片</span>
+                </div>
+                <p class="mt-1 text-sm text-gray-500">图片库越大，去重效果越好</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">SEO 关键字</label>
+            <textarea id="seoKeywords" rows="3" placeholder="AI阅卷,智能阅卷,自动阅卷..." 
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"></textarea>
+            <p class="mt-1 text-sm text-gray-500">多个关键字用逗号隔开，系统会随机选择关键字生成文章</p>
+          </div>
+
+          <div class="flex justify-end">
+            <button onclick="saveArticleConfig()" class="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-medium">
+              保存配置
+            </button>
+          </div>
+        </div>
+
+        <!-- 文章列表 -->
+        <div class="border-t pt-6">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-semibold text-gray-800">📚 已发布文章</h3>
+            <button onclick="generateArticle()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
+              + 生成新文章
+            </button>
+          </div>
+          
+          <div id="articleList" class="space-y-4">
+            <p class="text-gray-500 text-center py-8">加载中...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 系统设置 -->
+      <div id="tab-system" class="tab-content">
+        <h2 class="text-2xl font-bold text-gray-800 mb-6">系统设置</h2>
+        
+        <div class="p-6 bg-gray-50 rounded-lg">
+          <h3 class="text-lg font-semibold text-gray-800 mb-4">🔐 修改管理员密码</h3>
+          <div class="space-y-4 max-w-md">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">当前密码</label>
+              <input type="password" id="currentPassword" 
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">新密码</label>
+              <input type="password" id="newPassword" 
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">确认新密码</label>
+              <input type="password" id="confirmPassword" 
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-6 flex justify-end">
+          <button onclick="changePassword()" class="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-medium">
+            修改密码
+          </button>
+        </div>
+
+        <!-- SSL证书管理 -->
+        <div class="mt-8 p-6 bg-green-50 rounded-lg">
+          <h3 class="text-lg font-semibold text-gray-800 mb-4">🔐 SSL 证书管理</h3>
+          
+          <div id="certificateInfo" class="space-y-4">
+            <p class="text-gray-500">加载中...</p>
+          </div>
+
+          <div class="mt-6 flex space-x-4">
+            <button onclick="renewCertificate()" class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium">
+              🔄 手动更新证书
+            </button>
+            <button onclick="loadCertificateInfo()" class="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition font-medium">
+              🔍 刷新证书信息
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 状态提示 -->
+    <div id="statusMessage" class="hidden mt-6 p-4 rounded-lg"></div>
+  </div>
+
+  <script>
+    const API_BASE = 'https://shanyue.jotoai.com/api';
+    let config = {};
+    let articles = [];
+
+    // 标签切换
+    document.querySelectorAll('.tab-button').forEach(button => {
+      button.addEventListener('click', () => {
+        const tab = button.dataset.tab;
+        
+        // 更新按钮状态
+        document.querySelectorAll('.tab-button').forEach(btn => {
+          btn.classList.remove('active');
+        });
+        button.classList.add('active');
+        
+        // 更新内容显示
+        document.querySelectorAll('.tab-content').forEach(content => {
+          content.classList.remove('active');
+        });
+        document.getElementById(`tab-${tab}`).classList.add('active');
+        
+        // 加载对应数据
+        if (tab === 'article') {
+          loadArticles();
+        } else if (tab === 'contacts') {
+          loadContacts();
+        } else if (tab === 'system') {
+          loadCertificateInfo();
+        }
+      });
+    });
+
+    // 页面加载时初始化
+    window.addEventListener('DOMContentLoaded', () => {
+      loadConfig();
+      
+      // 绑定Unsplash测试按钮事件（修复点击无反应的问题）
+      setTimeout(() => {
+        const buttons = document.querySelectorAll('button');
+        buttons.forEach(btn => {
+          if (btn.textContent.trim() === '测试连接' && btn.onclick && btn.onclick.toString().includes('testUnsplash')) {
+            // 移除inline onclick
+            btn.removeAttribute('onclick');
+            // 添加事件监听器
+            btn.addEventListener('click', testUnsplash);
+            console.log('✅ Unsplash测试按钮事件已重新绑定');
+          }
+        });
+      }, 100);
+    });
+
+    // 加载配置
+    async function loadConfig() {
+      try {
+        const response = await fetch(`${API_BASE}/admin/config`);
+        config = await response.json();
+        
+        // 填充表单
+        document.getElementById('email').value = config.email || '';
+        document.getElementById('smtpHost').value = config.smtpHost || '';
+        document.getElementById('smtpPort').value = config.smtpPort || 465;
+        document.getElementById('smtpUser').value = config.smtpUser || '';
+        document.getElementById('smtpPassword').value = config.smtpPassword || '';
+        document.getElementById('smtpFrom').value = config.smtpFrom || '';
+        document.getElementById('feishuWebhook').value = config.feishuWebhook || '';
+        document.getElementById('feishuAppId').value = config.feishuAppId || '';
+        document.getElementById('feishuAppSecret').value = config.feishuAppSecret || '';
+        document.getElementById('feishuTableUrl').value = config.feishuTableUrl || '';
+        document.getElementById('llmApiKey').value = config.llmApiKey || '';
+        document.getElementById('llmApiEndpoint').value = config.llmApiEndpoint || '';
+        document.getElementById('llmModel').value = config.llmModel || '';
+        document.getElementById('unsplashApiKey').value = config.unsplashApiKey || '';
+        document.getElementById('autoPostEnabled').checked = config.autoPostEnabled || false;
+        document.getElementById('autoPostTime').value = config.autoPostTime || '09:00';
+        document.getElementById('aiArticleCount').value = config.aiArticleCount || 1;
+        document.getElementById('rewriteArticleCount').value = config.rewriteArticleCount || 0;
+        document.getElementById('autoPostInterval').value = config.autoPostInterval || 24;
+        document.getElementById('enableSearchRewrite').checked = config.enableSearchRewrite || false;
+        document.getElementById('rewriteRounds').value = config.rewriteRounds || 3;
+        document.getElementById('enableImageDeduplication').checked = config.enableImageDeduplication || false;
+        document.getElementById('deduplicationWindow').value = config.deduplicationWindow || 5;
+        document.getElementById('seoKeywords').value = config.seoKeywords || '';
+        
+        // 加载已使用URL数量
+        loadUsedUrlCount();
+      } catch (error) {
+        showStatus('加载配置失败: ' + error.message, 'error');
+      }
+    }
+
+    // 保存留言配置
+    async function saveMessageConfig() {
+      try {
+        const data = {
+          email: document.getElementById('email').value,
+          smtpHost: document.getElementById('smtpHost').value,
+          smtpPort: parseInt(document.getElementById('smtpPort').value) || 465,
+          smtpUser: document.getElementById('smtpUser').value,
+          smtpPassword: document.getElementById('smtpPassword').value,
+          smtpFrom: document.getElementById('smtpFrom').value,
+          feishuWebhook: document.getElementById('feishuWebhook').value,
+          feishuAppId: document.getElementById('feishuAppId').value,
+          feishuAppSecret: document.getElementById('feishuAppSecret').value,
+          feishuTableUrl: document.getElementById('feishuTableUrl').value
+        };
+        
+        const response = await fetch(`${API_BASE}/admin/config`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        if (result.success) {
+          showStatus('✅ 留言配置保存成功！', 'success');
+        } else {
+          showStatus('❌ 保存失败: ' + (result.message || '未知错误'), 'error');
+        }
+      } catch (error) {
+        showStatus('❌ 保存失败: ' + error.message, 'error');
+      }
+    }
+
+    // 保存AI配置
+    async function saveAIConfig() {
+      try {
+        const data = {
+          llmApiKey: document.getElementById('llmApiKey').value,
+          llmApiEndpoint: document.getElementById('llmApiEndpoint').value,
+          unsplashApiKey: document.getElementById('unsplashApiKey').value,
+          llmModel: document.getElementById('llmModel').value,
+          unsplashApiKey: document.getElementById('unsplashApiKey').value
+        };
+        
+        const response = await fetch(`${API_BASE}/admin/config`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        if (result.success) {
+          showStatus('✅ AI配置保存成功！', 'success');
+        } else {
+          showStatus('❌ 保存失败: ' + (result.message || '未知错误'), 'error');
+        }
+      } catch (error) {
+        showStatus('❌ 保存失败: ' + error.message, 'error');
+      }
+    }
+
+    // 保存文章配置
+    async function saveArticleConfig() {
+      try {
+        const data = {
+          llmApiKey: document.getElementById('llmApiKey').value,
+          llmApiEndpoint: document.getElementById('llmApiEndpoint').value,
+          unsplashApiKey: document.getElementById('unsplashApiKey').value,
+          llmModel: document.getElementById('llmModel').value,
+          autoPostEnabled: document.getElementById('autoPostEnabled').checked,
+          autoPostTime: document.getElementById('autoPostTime').value,
+          aiArticleCount: parseInt(document.getElementById('aiArticleCount').value) || 1,
+          rewriteArticleCount: parseInt(document.getElementById('rewriteArticleCount').value) || 0,
+          autoPostInterval: parseInt(document.getElementById('autoPostInterval').value) || 24,
+          enableSearchRewrite: document.getElementById('enableSearchRewrite').checked,
+          rewriteRounds: parseInt(document.getElementById('rewriteRounds').value) || 3,
+          enableImageDeduplication: document.getElementById('enableImageDeduplication').checked,
+          deduplicationWindow: parseInt(document.getElementById('deduplicationWindow').value) || 5,
+          seoKeywords: document.getElementById('seoKeywords').value
+        };
+        
+        const response = await fetch(`${API_BASE}/admin/config`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        if (result.success) {
+          showStatus('✅ 文章配置保存成功！', 'success');
+        } else {
+          showStatus('❌ 保存失败: ' + (result.message || '未知错误'), 'error');
+        }
+      } catch (error) {
+        showStatus('❌ 保存失败: ' + error.message, 'error');
+      }
+    }
+
+    // 测试飞书Webhook
+    async function testFeishuWebhook() {
+      showStatus('⏳ 正在测试飞书 Webhook...', 'info');
+      await saveMessageConfig();
+      try {
+        const response = await fetch(`${API_BASE}/admin/test-feishu-webhook`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        const result = await response.json();
+        if (result.success) {
+          showStatus('✅ Webhook 测试成功！请检查飞书群聊', 'success');
+        } else {
+          showStatus('❌ 测试失败: ' + (result.message || '未知错误'), 'error');
+        }
+      } catch (error) {
+        showStatus('❌ 测试失败: ' + error.message, 'error');
+      }
+    }
+
+    // 测试飞书表格
+    async function testFeishuTable() {
+      showStatus('⏳ 正在测试飞书表格同步...', 'info');
+      await saveMessageConfig();
+      try {
+        const response = await fetch(`${API_BASE}/admin/test-feishu-table`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        const result = await response.json();
+        if (result.success) {
+          showStatus('✅ 表格同步测试成功！请检查飞书表格', 'success');
+        } else {
+          showStatus('❌ 测试失败: ' + (result.message || '未知错误'), 'error');
+        }
+      } catch (error) {
+        showStatus('❌ 测试失败: ' + error.message, 'error');
+      }
+    }
+
+    // 测试LLM
+    async function testLLM() {
+      showStatus('⏳ 正在测试 LLM 连接...', 'info');
+      await saveAIConfig();
+      showStatus('✅ LLM 配置已保存', 'success');
+    }
+
+    // 生成文章
+    async function generateArticle() {
+      showStatus('⏳ 正在生成文章，请稍候...', 'info');
+      try {
+        const response = await fetch(`${API_BASE}/admin/generate-article`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        const result = await response.json();
+        if (result.success) {
+          showStatus(`✅ 文章生成成功！标题：${result.article.title}`, 'success');
+          loadArticles();
+        } else {
+          showStatus('❌ 生成失败: ' + (result.error || '未知错误'), 'error');
+        }
+      } catch (error) {
+        showStatus('❌ 生成失败: ' + error.message, 'error');
+      }
+    }
+
+    // 加载文章列表
+    async function loadArticles() {
+      try {
+        const response = await fetch(`${API_BASE}/admin/articles`);
+        articles = await response.json();
+        
+        const listEl = document.getElementById('articleList');
+        if (articles.length === 0) {
+          listEl.innerHTML = '<p class="text-gray-500 text-center py-8">暂无文章</p>';
+          return;
+        }
+        
+        listEl.innerHTML = articles.map(article => `
+          <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition">
+            <div class="flex items-start justify-between">
+              <div class="flex-1">
+                <h4 class="font-semibold text-gray-800 mb-2">${article.title}</h4>
+                <p class="text-sm text-gray-600 mb-2">${article.content.substring(0, 100)}...</p>
+                <div class="flex items-center space-x-4 text-sm text-gray-500">
+                  <span>🏷️ ${article.keyword}</span>
+                  <span>📅 ${new Date(article.createdAt).toLocaleDateString('zh-CN')}</span>
+                </div>
+              </div>
+              <img src="${article.imageUrl}" alt="${article.title}" class="w-32 h-20 object-cover rounded ml-4">
+            </div>
+            <div class="mt-3 flex justify-end space-x-2">
+              <button onclick="deleteArticle('${article.id}')" class="px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded">删除</button>
+            </div>
+          </div>
+        `).join('');
+      } catch (error) {
+        document.getElementById('articleList').innerHTML = 
+          '<p class="text-red-500 text-center py-8">加载失败: ' + error.message + '</p>';
+      }
+    }
+
+    // 加载留言列表
+    async function loadContacts() {
+      try {
+        const response = await fetch(`${API_BASE}/admin/contacts`);
+        const contacts = await response.json();
+        
+        const listEl = document.getElementById('contactsList');
+        if (contacts.length === 0) {
+          listEl.innerHTML = '<p class="text-gray-500 text-center py-8">暂无留言</p>';
+          return;
+        }
+        
+        listEl.innerHTML = contacts.map(contact => `
+          <div class="border border-gray-200 rounded-lg p-6 hover:shadow-md transition bg-white">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="text-sm font-medium text-gray-500">姓名</label>
+                <p class="text-gray-800 font-medium">${contact.name || '-'}</p>
+              </div>
+              <div>
+                <label class="text-sm font-medium text-gray-500">学校/机构</label>
+                <p class="text-gray-800">${contact.school || contact.company || '-'}</p>
+              </div>
+              <div>
+                <label class="text-sm font-medium text-gray-500">手机</label>
+                <p class="text-gray-800">${contact.phone || '-'}</p>
+              </div>
+              <div>
+                <label class="text-sm font-medium text-gray-500">邮箱</label>
+                <p class="text-gray-800">${contact.email || '-'}</p>
+              </div>
+              <div class="md:col-span-2">
+                <label class="text-sm font-medium text-gray-500">咨询需求</label>
+                <p class="text-gray-800">${contact.message || '-'}</p>
+              </div>
+              <div>
+                <label class="text-sm font-medium text-gray-500">来源</label>
+                <p class="text-gray-800">${contact.source || '直接访问'}</p>
+              </div>
+              <div>
+                <label class="text-sm font-medium text-gray-500">提交时间</label>
+                <p class="text-gray-800">${contact.submittedAt ? new Date(contact.submittedAt).toLocaleString('zh-CN') : '-'}</p>
+              </div>
+            </div>
+          </div>
+        `).join('');
+      } catch (error) {
+        document.getElementById('contactsList').innerHTML = 
+          '<p class="text-red-500 text-center py-8">加载失败: ' + error.message + '</p>';
+      }
+    }
+
+    // 删除文章
+    async function deleteArticle(id) {
+      if (!confirm('确定要删除这篇文章吗？')) return;
+      
+      try {
+        const response = await fetch(`${API_BASE}/admin/articles/${id}`, {
+          method: 'DELETE'
+        });
+        const result = await response.json();
+        if (result.success) {
+          showStatus('✅ 文章已删除', 'success');
+          loadArticles();
+        } else {
+          showStatus('❌ 删除失败', 'error');
+        }
+      } catch (error) {
+        showStatus('❌ 删除失败: ' + error.message, 'error');
+      }
+    }
+
+    // 修改密码
+    async function changePassword() {
+      const current = document.getElementById('currentPassword').value;
+      const newPass = document.getElementById('newPassword').value;
+      const confirm = document.getElementById('confirmPassword').value;
+      
+      if (!current || !newPass || !confirm) {
+        showStatus('❌ 请填写所有字段', 'error');
+        return;
+      }
+      
+      if (newPass !== confirm) {
+        showStatus('❌ 两次输入的新密码不一致', 'error');
+        return;
+      }
+      
+      try {
+        const response = await fetch(`${API_BASE}/admin/change-password`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ currentPassword: current, newPassword: newPass })
+        });
+        
+        const result = await response.json();
+        if (result.success) {
+          showStatus('✅ 密码修改成功！', 'success');
+          document.getElementById('currentPassword').value = '';
+          document.getElementById('newPassword').value = '';
+          document.getElementById('confirmPassword').value = '';
+        } else {
+          showStatus('❌ 修改失败: ' + (result.message || '未知错误'), 'error');
+        }
+      } catch (error) {
+        showStatus('❌ 修改失败: ' + error.message, 'error');
+      }
+    }
+
+    // 加载SSL证书信息
+    async function loadCertificateInfo() {
+      try {
+        const certInfoEl = document.getElementById('certificateInfo');
+        certInfoEl.innerHTML = '<p class="text-gray-500">加载中...</p>';
+        
+        const response = await fetch(`${API_BASE}/admin/certificate-info`);
+        const result = await response.json();
+        
+        if (result.success && result.certificate) {
+          const cert = result.certificate;
+          const expiryDate = new Date(cert.validTo);
+          const now = new Date();
+          const daysLeft = Math.ceil((expiryDate - now) / (1000 * 60 * 60 * 24));
+          
+          let statusColor = 'green';
+          let statusText = '正常';
+          if (daysLeft < 7) {
+            statusColor = 'red';
+            statusText = '即将过期';
+          } else if (daysLeft < 30) {
+            statusColor = 'yellow';
+            statusText = '即将过期';
+          }
+          
+          certInfoEl.innerHTML = `
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="text-sm font-medium text-gray-500">域名</label>
+                <p class="text-gray-800 font-medium">${cert.domain || '-'}</p>
+              </div>
+              <div>
+                <label class="text-sm font-medium text-gray-500">状态</label>
+                <p class="text-${statusColor}-600 font-medium">${statusText}</p>
+              </div>
+              <div>
+                <label class="text-sm font-medium text-gray-500">颁发日期</label>
+                <p class="text-gray-800">${new Date(cert.validFrom).toLocaleDateString('zh-CN')}</p>
+              </div>
+              <div>
+                <label class="text-sm font-medium text-gray-500">过期日期</label>
+                <p class="text-gray-800">${expiryDate.toLocaleDateString('zh-CN')}</p>
+              </div>
+              <div class="md:col-span-2">
+                <label class="text-sm font-medium text-gray-500">剩余天数</label>
+                <p class="text-2xl font-bold text-${statusColor}-600">${daysLeft} 天</p>
+                ${daysLeft < 30 ? '<p class="text-sm text-yellow-600 mt-1">⚠️ 建议尽快更新证书</p>' : ''}
+              </div>
+              <div class="md:col-span-2">
+                <label class="text-sm font-medium text-gray-500">颁发机构</label>
+                <p class="text-gray-800">${cert.issuer || '-'}</p>
+              </div>
+            </div>
+          `;
+        } else {
+          certInfoEl.innerHTML = '<p class="text-red-500">无法获取证书信息</p>';
+        }
+      } catch (error) {
+        document.getElementById('certificateInfo').innerHTML = 
+          '<p class="text-red-500">加载失败: ' + error.message + '</p>';
+      }
+    }
+
+    // 手动更新SSL证书
+    async function renewCertificate() {
+      if (!confirm('确定要更新SSL证书吗？这可能需要几分钟时间。')) {
+        return;
+      }
+      
+      showStatus('⏳ 正在更新SSL证书，请稍候...', 'info');
+      
+      try {
+        const response = await fetch(`${API_BASE}/admin/renew-certificate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        const result = await response.json();
+        if (result.success) {
+          showStatus('✅ SSL证书更新成功！', 'success');
+          loadCertificateInfo();
+        } else {
+          showStatus('❌ 更新失败: ' + (result.message || '未知错误'), 'error');
+        }
+      } catch (error) {
+        showStatus('❌ 更新失败: ' + error.message, 'error');
+      }
+    }
+
+    // 退出登录
+    function logout() {
+      if (confirm('确定要退出登录吗？')) {
+        localStorage.removeItem('adminToken');
+        window.location.href = '/';
+      }
+    }
+
+    // 加载已使用URL数量
+    async function loadUsedUrlCount() {
+      try {
+        const response = await fetch(`${API_BASE}/admin/used-urls/count`);
+        const result = await response.json();
+        if (result.success) {
+          document.getElementById('usedUrlCount').textContent = result.count || 0;
+        }
+      } catch (error) {
+        console.error('加载已使用URL数量失败:', error);
+      }
+    }
+
+    // 清空已使用URL
+    async function clearUsedUrls() {
+      if (!confirm('确定要清空所有已使用的URL历史吗？')) {
+        return;
+      }
+      
+      try {
+        const response = await fetch(`${API_BASE}/admin/used-urls/clear`, {
+          method: 'POST'
+        });
+        const result = await response.json();
+        if (result.success) {
+          showStatus('✅ 已成功清空历史URL', 'success');
+          loadUsedUrlCount();
+        } else {
+          showStatus('❌ 清空失败: ' + (result.message || '未知错误'), 'error');
+        }
+      } catch (error) {
+        showStatus('❌ 清空失败: ' + error.message, 'error');
+      }
+    }
+
+    // 显示状态消息
+    function showStatus(message, type) {
+      const statusEl = document.getElementById('statusMessage');
+      statusEl.textContent = message;
+      statusEl.className = `mt-6 p-4 rounded-lg ${
+        type === 'success' ? 'bg-green-100 text-green-800' :
+        type === 'error' ? 'bg-red-100 text-red-800' :
+        'bg-blue-100 text-blue-800'
+      }`;
+      statusEl.classList.remove('hidden');
+      
+      if (type !== 'info') {
+        setTimeout(() => {
+          statusEl.classList.add('hidden');
+        }, 5000);
+      }
+    }
+
+    // Unsplash相关函数
+    async function testUnsplash() {
+      showStatus('⏳ 正在测试 Unsplash 连接...', 'info');
+      try {
+        const apiKey = document.getElementById('unsplashApiKey').value;
+        if (!apiKey) {
+          showStatus('❌ 请先输入 Unsplash Access Key', 'error');
+          return;
+        }
+        
+        // 保存配置
+        await saveAIConfig();
+        
+        // 测试API
+        const response = await fetch(`${API_BASE}/admin/test-unsplash`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ apiKey })
+        });
+        
+        const result = await response.json();
+        if (result.success) {
+          showStatus(`✅ Unsplash 连接成功！找到 ${result.count} 张图片`, 'success');
+        } else {
+          showStatus('❌ 测试失败: ' + (result.message || '未知错误'), 'error');
+        }
+      } catch (error) {
+        showStatus('❌ 测试失败: ' + error.message, 'error');
+      }
+    }
+
+    async function clearUnsplashImages() {
+      if (!confirm('确定要清空所有已使用的图片记录吗？清空后可以重新使用之前的图片。')) {
+        return;
+      }
+      
+      showStatus('⏳ 正在清空记录...', 'info');
+      try {
+        const response = await fetch(`${API_BASE}/admin/clear-unsplash-images`, {
+          method: 'POST'
+        });
+        
+        const result = await response.json();
+        if (result.success) {
+          document.getElementById('unsplashUsedCount').textContent = '0';
+          showStatus('✅ 已清空图片使用记录', 'success');
+        } else {
+          showStatus('❌ 清空失败: ' + (result.message || '未知错误'), 'error');
+        }
+      } catch (error) {
+        showStatus('❌ 清空失败: ' + error.message, 'error');
+      }
+    }
+
+    async function loadUnsplashStats() {
+      try {
+        const response = await fetch(`${API_BASE}/admin/unsplash-stats`);
+        const result = await response.json();
+        if (result.success) {
+          document.getElementById('unsplashUsedCount').textContent = result.count || 0;
+        }
+      } catch (error) {
+        console.error('加载Unsplash统计失败:', error);
+      }
+    }
+
+    // 页面加载时加载Unsplash统计
+    window.addEventListener('load', () => {
+      loadUnsplashStats();
+      
+      // 修复Unsplash测试按钮点击问题
+      setTimeout(() => {
+        const buttons = document.querySelectorAll('button');
+        buttons.forEach((btn, index) => {
+          const text = btn.textContent.trim();
+          if (text === '测试连接') {
+            // 检查是否是Unsplash的测试按钮（通过前面的输入框ID判断）
+            const parent = btn.parentElement;
+            if (parent && parent.previousElementSibling) {
+              const inputs = parent.parentElement.querySelectorAll('input[id="unsplashApiKey"]');
+              if (inputs.length > 0) {
+                // 这是Unsplash的测试按钮
+                btn.onclick = null;  // 清除原有onclick
+                btn.addEventListener('click', (e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  testUnsplash();
+                });
+                console.log('✅ Unsplash测试按钮事件已绑定 (index:', index, ')');
+              }
+            }
+          }
+        });
+      }, 500);
+    });
+  </script>
+</body>
+</html>

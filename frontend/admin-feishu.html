@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>飞书集成配置 - 闪阅管理后台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="min-h-screen">
+        <!-- 顶部导航 -->
+        <nav class="bg-white shadow-sm border-b">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between h-16">
+                    <div class="flex items-center">
+                        <h1 class="text-xl font-bold text-purple-600">闪阅管理后台</h1>
+                        <span class="ml-4 text-gray-500">/ 飞书集成配置</span>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <button onclick="window.location.href='/#admin'" class="text-gray-600 hover:text-purple-600">
+                            返回主页
+                        </button>
+                        <button onclick="logout()" class="text-red-600 hover:text-red-700">
+                            退出登录
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- 主内容区 -->
+        <div class="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+            <!-- 飞书机器人配置 -->
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">飞书机器人 Webhook</h2>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Webhook 地址
+                        </label>
+                        <input type="text" id="feishuWebhook" placeholder="https://open.feishu.cn/open-apis/bot/v2/hook/..."
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent font-mono text-sm">
+                        <p class="mt-2 text-sm text-gray-600">用户提交联系表单时，将发送通知到飞书群聊</p>
+                    </div>
+
+                    <div class="flex justify-end">
+                        <button onclick="testWebhook()" 
+                            class="px-6 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition">
+                            测试 Webhook
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 飞书多维表格配置 -->
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">飞书多维表格同步</h2>
+                
+                <div class="space-y-4">
+                    <!-- App ID -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            App ID
+                        </label>
+                        <input type="text" id="feishuAppId" placeholder="cli_xxxxxxxxxxxxxxxx"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent font-mono text-sm">
+                    </div>
+
+                    <!-- App Secret -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            App Secret
+                        </label>
+                        <input type="password" id="feishuAppSecret" placeholder="••••••••••••••••••••"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent font-mono text-sm">
+                    </div>
+
+                    <!-- 表格 URL -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            多维表格 URL
+                        </label>
+                        <input type="text" id="feishuTableUrl" placeholder="https://xxx.feishu.cn/base/xxxxx?table=xxxxx"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent font-mono text-sm">
+                        <p class="mt-2 text-sm text-gray-600">打开多维表格，复制浏览器地址栏中的完整 URL</p>
+                    </div>
+
+                    <div class="flex justify-end">
+                        <button onclick="testTableSync()" 
+                            class="px-6 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition">
+                            测试表格同步
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 保存按钮 -->
+            <div class="flex justify-end mb-6">
+                <button onclick="saveConfig()" 
+                    class="px-8 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-lg font-medium">
+                    保存所有配置
+                </button>
+            </div>
+
+            <!-- 配置说明 -->
+            <div class="bg-blue-50 rounded-lg p-6 mb-6">
+                <h3 class="text-lg font-semibold text-blue-900 mb-3">📘 配置步骤</h3>
+                <div class="space-y-4 text-sm text-blue-800">
+                    <div>
+                        <strong class="block mb-2">1. 创建飞书自定义机器人（可选）</strong>
+                        <ul class="ml-4 space-y-1">
+                            <li>• 在飞书群聊中，点击"设置" → "群机器人" → "添加机器人"</li>
+                            <li>• 选择"自定义机器人"，设置名称和头像</li>
+                            <li>• 复制生成的 Webhook 地址</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <strong class="block mb-2">2. 创建飞书应用</strong>
+                        <ul class="ml-4 space-y-1">
+                            <li>• 访问 <a href="https://open.feishu.cn" target="_blank" class="text-blue-600 underline">飞书开放平台</a></li>
+                            <li>• 创建企业自建应用</li>
+                            <li>• 在"凭证与基础信息"中获取 App ID 和 App Secret</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <strong class="block mb-2">3. 配置应用权限</strong>
+                        <ul class="ml-4 space-y-1">
+                            <li>• 进入应用管理 → "权限管理"</li>
+                            <li>• 添加权限：bitable:app（查看、评论、编辑和管理多维表格）</li>
+                            <li>• 添加权限：base:record:create（新增记录）</li>
+                            <li>• 创建版本并发布应用</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <strong class="block mb-2">4. 将应用添加到多维表格</strong>
+                        <ul class="ml-4 space-y-1">
+                            <li>• 打开目标多维表格</li>
+                            <li>• 点击右上角"..." → "更多" → "添加文档应用"</li>
+                            <li>• 搜索并添加您创建的应用</li>
+                            <li>• 授予应用"可编辑"权限</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <strong class="block mb-2">5. 表格字段要求</strong>
+                        <ul class="ml-4 space-y-1">
+                            <li>• 网址（文本）</li>
+                            <li>• 日期（文本）</li>
+                            <li>• 姓名（文本）</li>
+                            <li>• 公司/学校/机构（文本）</li>
+                            <li>• 手机号码（文本）</li>
+                            <li>• 电子邮箱（文本）</li>
+                            <li>• 咨询需求（文本）</li>
+                            <li>• 来源（文本）</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 状态提示 -->
+            <div id="statusMessage" class="hidden mt-4 p-4 rounded-lg"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://shanyue.jotoai.com/api';
+        
+        // 页面加载时获取配置
+        window.addEventListener('DOMContentLoaded', async () => {
+            await loadConfig();
+        });
+
+        // 加载配置
+        async function loadConfig() {
+            try {
+                const response = await fetch(`${API_BASE}/admin/config`);
+                const config = await response.json();
+                
+                document.getElementById('feishuWebhook').value = config.feishuWebhook || '';
+                document.getElementById('feishuAppId').value = config.feishuAppId || '';
+                document.getElementById('feishuAppSecret').value = config.feishuAppSecret || '';
+                document.getElementById('feishuTableUrl').value = config.feishuTableUrl || '';
+            } catch (error) {
+                showMessage('加载配置失败: ' + error.message, 'error');
+            }
+        }
+
+        // 保存配置
+        async function saveConfig() {
+            try {
+                const config = {
+                    feishuWebhook: document.getElementById('feishuWebhook').value,
+                    feishuAppId: document.getElementById('feishuAppId').value,
+                    feishuAppSecret: document.getElementById('feishuAppSecret').value,
+                    feishuTableUrl: document.getElementById('feishuTableUrl').value
+                };
+
+                const response = await fetch(`${API_BASE}/admin/config`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(config)
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage('✅ 配置保存成功！', 'success');
+                } else {
+                    showMessage('❌ 保存失败: ' + (result.message || '未知错误'), 'error');
+                }
+            } catch (error) {
+                showMessage('❌ 保存失败: ' + error.message, 'error');
+            }
+        }
+
+        // 测试 Webhook
+        async function testWebhook() {
+            showMessage('⏳ 正在测试飞书 Webhook，请稍候...', 'info');
+            
+            try {
+                // 先保存配置
+                await saveConfig();
+                
+                const response = await fetch(`${API_BASE}/admin/test-feishu-webhook`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage('✅ Webhook 测试成功！请检查飞书群聊是否收到测试消息', 'success');
+                } else {
+                    showMessage('❌ Webhook 测试失败: ' + (result.message || '未知错误'), 'error');
+                }
+            } catch (error) {
+                showMessage('❌ 测试失败: ' + error.message, 'error');
+            }
+        }
+
+        // 测试表格同步
+        async function testTableSync() {
+            showMessage('⏳ 正在测试飞书表格同步，请稍候...', 'info');
+            
+            try {
+                // 先保存配置
+                await saveConfig();
+                
+                const response = await fetch(`${API_BASE}/admin/test-feishu-table`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage('✅ 表格同步测试成功！请检查飞书多维表格是否新增了测试记录', 'success');
+                } else {
+                    showMessage('❌ 表格同步测试失败: ' + (result.message || '未知错误'), 'error');
+                }
+            } catch (error) {
+                showMessage('❌ 测试失败: ' + error.message, 'error');
+            }
+        }
+
+        // 显示消息
+        function showMessage(message, type) {
+            const messageEl = document.getElementById('statusMessage');
+            messageEl.textContent = message;
+            messageEl.className = `mt-4 p-4 rounded-lg ${
+                type === 'success' ? 'bg-green-100 text-green-800' :
+                type === 'error' ? 'bg-red-100 text-red-800' :
+                'bg-blue-100 text-blue-800'
+            }`;
+            messageEl.classList.remove('hidden');
+            
+            if (type !== 'info') {
+                setTimeout(() => {
+                    messageEl.classList.add('hidden');
+                }, 5000);
+            }
+        }
+
+        // 退出登录
+        function logout() {
+            if (confirm('确定要退出登录吗？')) {
+                localStorage.removeItem('adminToken');
+                window.location.href = '/';
+            }
+        }
+    </script>
+</body>
+</html>
