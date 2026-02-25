@@ -1,4 +1,9 @@
 {
+  "brandConfig": {
+    "name": "您的品牌名称",
+    "description": "您的产品描述",
+    "adminTitle": "管理后台"
+  },
   "emailConfig": {
     "service": "qq",
     "user": "your-email@qq.com",

@@ -36,6 +36,9 @@ async function ensureDataDir() {
       await fs.access(CONFIG_FILE);
     } catch {
       await fs.writeFile(CONFIG_FILE, JSON.stringify({
+        brandName: '您的品牌名称',
+        brandDescription: '您的产品描述',
+        adminTitle: '管理后台',
         email: '',
         autoPostEnabled: false,
         postsPerDay: 5,
@@ -90,6 +93,9 @@ async function ensureDataDir() {
 // 读取配置
 async function getConfig() {
   const defaultConfig = {
+    brandName: '您的品牌名称',
+    brandDescription: '您的产品描述',
+    adminTitle: '管理后台',
     email: '',
     autoPostEnabled: false,
     postsPerDay: 5,

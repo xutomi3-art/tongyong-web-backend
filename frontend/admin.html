@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>闪阅管理后台</title>
+  <title>管理后台</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     body {
@@ -30,8 +30,8 @@
     <div class="max-w-7xl mx-auto px-4 py-6">
       <div class="flex justify-between items-center">
         <div>
-          <h1 class="text-3xl font-bold">管理后台</h1>
-          <p class="text-purple-100 mt-1">闪阅 AI 全科阅卷系统</p>
+          <h1 class="text-3xl font-bold" id="adminTitle">管理后台</h1>
+          <p class="text-purple-100 mt-1" id="brandDescription">您的产品描述</p>
         </div>
         <button onclick="logout()" class="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition">
           退出登录
@@ -489,6 +489,15 @@
       try {
         const response = await fetch(`${API_BASE}/admin/config`);
         config = await response.json();
+        
+        // 加载品牌信息
+        if (config.brandName) {
+          document.getElementById('brandDescription').textContent = config.brandName + (config.brandDescription ? ' - ' + config.brandDescription : '');
+        }
+        if (config.adminTitle) {
+          document.getElementById('adminTitle').textContent = config.adminTitle;
+          document.title = config.adminTitle;
+        }
         
         // 填充表单
         document.getElementById('email').value = config.email || '';
