@@ -486,7 +486,11 @@
             <p class="mt-1 text-sm text-gray-500">多个关键字用逗号隔开，系统会随机选择关键字生成文章</p>
           </div>
 
-          <div class="flex justify-end">
+          <div class="flex justify-end space-x-3">
+            <button onclick="generateArticleNow()" class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium flex items-center">
+              <span class="mr-2">⚡</span>
+              立即生成文章
+            </button>
             <button onclick="saveArticleConfig()" class="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-medium">
               保存配置
             </button>
@@ -978,6 +982,88 @@
         }
       } catch (error) {
         showStatus('❌ 生成失败: ' + error.message, 'error');
+      }
+    }
+
+    // 立即生成文章（根据当前配置）
+    async function generateArticleNow() {
+      // 获取当前配置
+      const aiCount = parseInt(document.getElementById('aiArticleCount').value) || 1;
+      const rewriteCount = parseInt(document.getElementById('rewriteArticleCount').value) || 0;
+      const totalCount = aiCount + rewriteCount;
+      
+      if (totalCount === 0) {
+        showStatus('⚠️ 请至少设置1篇AI文章或改写文章', 'error');
+        return;
+      }
+      
+      if (!confirm(`确认立即生成 ${totalCount} 篇文章？\n- AI原创: ${aiCount}篇\n- 搜索改写: ${rewriteCount}篇`)) {
+        return;
+      }
+      
+      showStatus(`⚡ 正在生成 ${totalCount} 篇文章，请耐心等待...`, 'info');
+      
+      let successCount = 0;
+      let failCount = 0;
+      
+      // 生成AI原创文章
+      for (let i = 0; i < aiCount; i++) {
+        try {
+          showStatus(`⚡ 正在生成第 ${i + 1}/${aiCount} 篇AI原创文章...`, 'info');
+          const response = await fetchWithAuth(`${API_BASE}/admin/generate-article`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+          });
+          const result = await response.json();
+          if (result.success) {
+            successCount++;
+            showStatus(`✅ 第 ${i + 1} 篇AI文章生成成功: ${result.article.title}`, 'success');
+          } else {
+            failCount++;
+            showStatus(`❌ 第 ${i + 1} 篇AI文章生成失败: ${result.error}`, 'error');
+          }
+        } catch (error) {
+          failCount++;
+          showStatus(`❌ 第 ${i + 1} 篇AI文章生成失败: ${error.message}`, 'error');
+        }
+        // 等待一下避免过快
+        if (i < aiCount - 1 || rewriteCount > 0) {
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+      }
+      
+      // 生成改写文章
+      for (let i = 0; i < rewriteCount; i++) {
+        try {
+          showStatus(`⚡ 正在生成第 ${i + 1}/${rewriteCount} 篇改写文章...`, 'info');
+          const response = await fetchWithAuth(`${API_BASE}/admin/generate-rewrite-article`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+          });
+          const result = await response.json();
+          if (result.success) {
+            successCount++;
+            showStatus(`✅ 第 ${i + 1} 篇改写文章生成成功: ${result.article.title}`, 'success');
+          } else {
+            failCount++;
+            showStatus(`❌ 第 ${i + 1} 篇改写文章生成失败: ${result.error}`, 'error');
+          }
+        } catch (error) {
+          failCount++;
+          showStatus(`❌ 第 ${i + 1} 篇改写文章生成失败: ${error.message}`, 'error');
+        }
+        // 等待一下避免过快
+        if (i < rewriteCount - 1) {
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+      }
+      
+      // 显示最终结果
+      if (successCount > 0) {
+        showStatus(`🎉 批量生成完成！成功: ${successCount}篇，失败: ${failCount}篇`, 'success');
+        loadArticles();
+      } else {
+        showStatus(`❌ 所有文章生成失败`, 'error');
       }
     }
 
