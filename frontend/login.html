@@ -244,7 +244,7 @@
           }
           
           // 跳转到管理后台
-          window.location.href = '/admin/admin.html';
+          window.location.href = '/backend/admin.html';
         } else {
           showError(data.message || '登录失败，请检查邮箱和密码');
         }
@@ -338,7 +338,7 @@
           localStorage.setItem('needsPasswordChange', 'true'); // 使用OTP登录后必须修改密码
           
           // 跳转到管理后台
-          window.location.href = '/admin/admin.html';
+          window.location.href = '/backend/admin.html';
         } else {
           showOtpError(data.message || '登录失败，请检查一次性密码');
         }
@@ -371,7 +371,7 @@
       .then(res => res.json())
       .then(data => {
         if (data.valid) {
-          window.location.href = '/admin/admin.html';
+          window.location.href = '/backend/admin.html';
         }
       })
       .catch(err => console.error('Token verification error:', err));
