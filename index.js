@@ -1169,3 +1169,201 @@ app.delete('/api/admin/admins/:email', async (req, res) => {
   }
 });
 
+
+// 存储邀请token（生产环境应使用Redis）
+const invitationTokens = new Map();
+
+// 发送管理员邀请
+app.post('/api/admin/invite', async (req, res) => {
+  try {
+    const { email, name } = req.body;
+    
+    if (!email || !name) {
+      return res.status(400).json({ success: false, message: '邮箱和姓名不能为空' });
+    }
+    
+    const config = await getConfig();
+    const admins = config.admins || [];
+    
+    // 检查邮箱是否已存在
+    if (admins.find(a => a.email === email)) {
+      return res.status(400).json({ success: false, message: '该邮箱已被使用' });
+    }
+    
+    // 生成邀请token（24小时有效）
+    const inviteToken = Math.random().toString(36).substring(2) + Date.now().toString(36);
+    const expiresAt = Date.now() + 24 * 60 * 60 * 1000; // 24小时
+    
+    // 存储邀请信息
+    invitationTokens.set(inviteToken, {
+      email,
+      name,
+      expiresAt,
+      invitedBy: req.user?.email || 'admin'
+    });
+    
+    // 生成邀请链接
+    const inviteLink = `${req.protocol}://${req.get('host')}/admin/accept-invite.html?token=${inviteToken}`;
+    
+    // 发送邀请邮件
+    const brandName = config.brandConfig?.name || '管理后台';
+    const emailSubjectPrefix = config.emailConfig?.emailSubjectPrefix || '';
+    
+    const mailOptions = {
+      from: config.emailConfig.from || config.emailConfig.user,
+      to: email,
+      subject: `${emailSubjectPrefix} 管理员邀请`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+            <h1 style="color: white; margin: 0; font-size: 28px;">🎉 管理员邀请</h1>
+          </div>
+          
+          <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px;">
+            <p style="font-size: 16px; color: #374151; margin-bottom: 20px;">
+              您好，<strong>${name}</strong>！
+            </p>
+            
+            <p style="font-size: 16px; color: #374151; margin-bottom: 20px;">
+              您已被邀请成为 <strong>${brandName}</strong> 的管理员。
+            </p>
+            
+            <p style="font-size: 16px; color: #374151; margin-bottom: 30px;">
+              请点击下方按钮接受邀请并设置您的密码：
+            </p>
+            
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${inviteLink}" 
+                 style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 40px; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: bold;">
+                接受邀请
+              </a>
+            </div>
+            
+            <p style="font-size: 14px; color: #6b7280; margin-top: 30px;">
+              如果按钮无法点击，请复制以下链接到浏览器：<br>
+              <a href="${inviteLink}" style="color: #667eea; word-break: break-all;">${inviteLink}</a>
+            </p>
+            
+            <p style="font-size: 14px; color: #ef4444; margin-top: 20px;">
+              ⚠️ 此邀请链接将在 24 小时后失效
+            </p>
+            
+            <p style="font-size: 14px; color: #6b7280; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+              如果您没有请求此邀请，请忽略此邮件。
+            </p>
+          </div>
+        </div>
+      `
+    };
+    
+    await transporter.sendMail(mailOptions);
+    
+    res.json({ 
+      success: true, 
+      message: '邀请邮件已发送',
+      inviteLink: inviteLink // 仅用于测试，生产环境应删除
+    });
+  } catch (error) {
+    console.error('Error sending invitation:', error);
+    res.status(500).json({ success: false, message: '发送邀请失败' });
+  }
+});
+
+// 验证邀请token
+app.get('/api/admin/verify-invite/:token', async (req, res) => {
+  try {
+    const { token } = req.params;
+    
+    const invitation = invitationTokens.get(token);
+    
+    if (!invitation) {
+      return res.status(404).json({ success: false, message: '邀请链接无效' });
+    }
+    
+    if (Date.now() > invitation.expiresAt) {
+      invitationTokens.delete(token);
+      return res.status(400).json({ success: false, message: '邀请链接已过期' });
+    }
+    
+    res.json({ 
+      success: true, 
+      email: invitation.email,
+      name: invitation.name
+    });
+  } catch (error) {
+    console.error('Error verifying invitation:', error);
+    res.status(500).json({ success: false, message: '验证失败' });
+  }
+});
+
+// 接受邀请并设置密码
+app.post('/api/admin/accept-invite', async (req, res) => {
+  try {
+    const { token, password } = req.body;
+    
+    if (!token || !password) {
+      return res.status(400).json({ success: false, message: 'Token和密码不能为空' });
+    }
+    
+    const invitation = invitationTokens.get(token);
+    
+    if (!invitation) {
+      return res.status(404).json({ success: false, message: '邀请链接无效' });
+    }
+    
+    if (Date.now() > invitation.expiresAt) {
+      invitationTokens.delete(token);
+      return res.status(400).json({ success: false, message: '邀请链接已过期' });
+    }
+    
+    // 验证密码强度
+    if (password.length < 8) {
+      return res.status(400).json({ success: false, message: '密码至少8位' });
+    }
+    
+    if (!/[a-zA-Z]/.test(password) || !/[0-9]/.test(password)) {
+      return res.status(400).json({ success: false, message: '密码必须包含字母和数字' });
+    }
+    
+    const config = await getConfig();
+    const admins = config.admins || [];
+    
+    // 检查邮箱是否已存在（防止重复接受）
+    if (admins.find(a => a.email === invitation.email)) {
+      invitationTokens.delete(token);
+      return res.status(400).json({ success: false, message: '该邮箱已被使用' });
+    }
+    
+    // 添加新管理员
+    admins.push({
+      email: invitation.email,
+      name: invitation.name,
+      password: password,
+      role: 'admin',
+      createdAt: new Date().toISOString(),
+      needsPasswordChange: false,
+      invitedBy: invitation.invitedBy
+    });
+    
+    config.admins = admins;
+    await saveConfig(config);
+    
+    // 删除已使用的邀请token
+    invitationTokens.delete(token);
+    
+    // 生成登录token
+    const loginToken = Buffer.from(`${invitation.email}:${password}`).toString('base64');
+    
+    res.json({ 
+      success: true, 
+      message: '账号创建成功',
+      token: loginToken,
+      email: invitation.email,
+      name: invitation.name
+    });
+  } catch (error) {
+    console.error('Error accepting invitation:', error);
+    res.status(500).json({ success: false, message: '接受邀请失败' });
+  }
+});
+
