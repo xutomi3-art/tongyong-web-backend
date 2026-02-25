@@ -1367,3 +1367,61 @@ app.post('/api/admin/accept-invite', async (req, res) => {
   }
 });
 
+
+// ==================== 配置管理API ====================
+
+// 获取配置
+app.get('/api/admin/config', verifyToken, (req, res) => {
+  res.json({
+    success: true,
+    config: config
+  });
+});
+
+// 更新配置
+app.post('/api/admin/config', verifyToken, (req, res) => {
+  try {
+    const updates = req.body;
+    
+    // 合并配置
+    if (updates.brandConfig) {
+      config.brandConfig = { ...config.brandConfig, ...updates.brandConfig };
+    }
+    
+    if (updates.emailConfig) {
+      config.emailConfig = { ...config.emailConfig, ...updates.emailConfig };
+    }
+    
+    if (updates.feishuConfig) {
+      config.feishuConfig = { ...config.feishuConfig, ...updates.feishuConfig };
+    }
+    
+    if (updates.llmConfig) {
+      config.llmConfig = { ...config.llmConfig, ...updates.llmConfig };
+    }
+    
+    if (updates.imageConfig) {
+      config.imageConfig = { ...config.imageConfig, ...updates.imageConfig };
+    }
+    
+    if (updates.seoConfig) {
+      config.seoConfig = { ...config.seoConfig, ...updates.seoConfig };
+    }
+    
+    // 保存到文件
+    fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+    
+    res.json({
+      success: true,
+      message: '配置已更新',
+      config: config
+    });
+  } catch (error) {
+    console.error('Error updating config:', error);
+    res.status(500).json({
+      success: false,
+      message: '更新配置失败'
+    });
+  }
+});
+

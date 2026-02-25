@@ -3,7 +3,8 @@
     "name": "您的品牌名称",
     "description": "您的产品描述",
     "adminTitle": "管理后台",
-    "emailSubjectPrefix": "[您的品牌] "
+    "emailSubjectPrefix": "[您的品牌] ",
+    "websiteUrl": "https://example.com"
   },
   "emailConfig": {
     "service": "qq",
