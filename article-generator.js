@@ -115,7 +115,7 @@ async function getUniqueArticleImage(keyword, imageConfig = null) {
 }
 
 // 使用LLM生成文章
-async function generateArticleWithLLM(llmConfig, keyword) {
+async function generateArticleWithLLM(llmConfig, keyword, wordCount = 1000) {
   try {
     let endpoint = llmConfig.apiEndpoint;
     if (!endpoint.includes('/chat/completions')) {
@@ -134,12 +134,14 @@ async function generateArticleWithLLM(llmConfig, keyword) {
           {
             role: 'user',
             content: `请写一篇关于"${keyword}"的SEO文章，要求：
-1. 字数在500-1000字之间
+1. 字数约${wordCount}字（误差±10%）
 2. 包含吸引人的标题
 3. 内容专业、实用，适合教育工作者阅读
 4. 自然融入关键词"${keyword}"
 5. 包含实际应用场景和案例
-6. 以JSON格式返回，包含title和content字段`
+6. **重要**：文章必须分段，每段3-5句话，段落之间用空行分隔
+7. **重要**：使用\n\n来分隔段落，确保文章有清晰的段落结构
+8. 以JSON格式返回，包含title和content字段，content中使用\n\n分隔段落`
           }
         ],
         temperature: 0.8,
@@ -173,7 +175,7 @@ async function generateArticleWithLLM(llmConfig, keyword) {
 }
 
 // 生成AI原创文章
-async function generateArticle(llmConfig = null, imageConfig = null, dedupConfig = null) {
+async function generateArticle(llmConfig = null, imageConfig = null, dedupConfig = null, wordCount = 1000) {
   console.log('[generateArticle] 收到的imageConfig:', JSON.stringify(imageConfig));
   const keyword = KEYWORDS[Math.floor(Math.random() * KEYWORDS.length)];
   
@@ -183,7 +185,7 @@ async function generateArticle(llmConfig = null, imageConfig = null, dedupConfig
   // 生成文章内容
   if (llmConfig && llmConfig.apiKey && llmConfig.apiEndpoint) {
     try {
-      articleData = await generateArticleWithLLM(llmConfig, keyword);
+      articleData = await generateArticleWithLLM(llmConfig, keyword, wordCount);
     } catch (error) {
       console.error('使用配置的LLM失败，使用默认内容:', error.message);
       articleData = generateDefaultArticle(keyword);
@@ -204,12 +206,14 @@ async function generateArticle(llmConfig = null, imageConfig = null, dedupConfig
           {
             role: 'user',
             content: `请写一篇关于"${keyword}"的SEO文章，要求：
-1. 字数在500-1000字之间
+1. 字数约${wordCount}字（误差±10%）
 2. 包含吸引人的标题
 3. 内容专业、实用，适合教育工作者阅读
 4. 自然融入关键词"${keyword}"
 5. 包含实际应用场景和案例
-6. 以JSON格式返回，包含title和content字段`
+6. **重要**：文章必须分段，每段3-5句话，段落之间用空行分隔
+7. **重要**：使用\n\n来分隔段落，确保文章有清晰的段落结构
+8. 以JSON格式返回，包含title和content字段，content中使用\n\n分隔段落`
           }
         ],
         temperature: 0.8,

@@ -188,7 +188,9 @@ async function generateArticle() {
     unsplashApiKey: config.imageConfig?.unsplashApiKey ?? config.unsplashApiKey
   };
   
-  return await generateArticleNew(llmConfig, imageConfig);
+  const wordCount = config.seoConfig?.articleWordCount ?? config.articleWordCount ?? 1000;
+  
+  return await generateArticleNew(llmConfig, imageConfig, null, wordCount);
 }
 
 
@@ -698,10 +700,14 @@ app.post('/api/admin/generate-article', verifyToken, async (req, res) => {
       unsplashApiKey: config.imageConfig?.unsplashApiKey ?? config.unsplashApiKey
     };
     
+    // 准备字数配置
+    const wordCount = config.seoConfig?.articleWordCount ?? config.articleWordCount ?? 1000;
+    
     console.log('[DEBUG] config.unsplashApiKey:', config.unsplashApiKey);
     console.log('[DEBUG] imageConfig:', imageConfig);
+    console.log('[DEBUG] wordCount:', wordCount);
     
-    const article = await generateArticle(llmConfig, imageConfig);
+    const article = await generateArticle(llmConfig, imageConfig, null, wordCount);
     const articles = await getArticles();
     articles.unshift(article);
     await saveArticles(articles);
