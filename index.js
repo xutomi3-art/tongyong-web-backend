@@ -3,6 +3,8 @@ const cors = require('cors');
 const fs = require('fs').promises;
 const path = require('path');
 const nodemailer = require('nodemailer');
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 const cron = require('node-cron');
 const { generateCaptchaText, generateCaptchaSVG } = require('./captcha');
 const { renewCertificate, getCertificateInfo } = require('./cert-manager');
@@ -11,6 +13,7 @@ const { sendToFeishuBot, syncToFeishuTable } = require('./feishu-integration');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 const DATA_DIR = path.join(__dirname, 'data');
 const CONFIG_FILE = path.join(DATA_DIR, 'config.json');
 const ARTICLES_FILE = path.join(DATA_DIR, 'articles.json');
@@ -291,10 +294,35 @@ app.post('/api/admin/login', async (req, res) => {
   const admins = config.admins || [];
   const admin = admins.find(a => a.email === email);
   
-  if (admin && admin.password === password) {
+  if (!admin) {
+    return res.status(401).json({ success: false, message: '邮箱或密码错误' });
+  }
+  
+  // 检查密码（支持明文和加密两种格式）
+  let passwordMatch = false;
+  if (admin.password.startsWith('$2a$') || admin.password.startsWith('$2b$')) {
+    // 已加密的密码
+    passwordMatch = await bcrypt.compare(password, admin.password);
+  } else {
+    // 明文密码（兼容旧数据）
+    passwordMatch = (admin.password === password);
+  }
+  
+  if (passwordMatch) {
+    // 生成JWT token
+    const token = jwt.sign(
+      { 
+        email: admin.email, 
+        name: admin.name,
+        role: admin.role || 'admin'
+      },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+    
     res.json({ 
       success: true, 
-      token: Buffer.from(`${email}:${password}`).toString('base64'),
+      token: token,
       needsPasswordChange: admin.needsPasswordChange || false,
       email: admin.email,
       name: admin.name
@@ -315,30 +343,39 @@ app.get('/api/admin/verify', async (req, res) => {
   const token = authHeader.substring(7);
   
   try {
-    const decoded = Buffer.from(token, 'base64').toString('utf-8');
-    const [email, password] = decoded.split(':');
-    const config = await getConfig();
-    
-    const admins = config.admins || [];
-    const admin = admins.find(a => a.email === email && a.password === password);
-    
-    if (admin) {
-      res.json({ 
-        valid: true,
-        needsPasswordChange: admin.needsPasswordChange || false,
-        email: admin.email,
-        name: admin.name
-      });
-    } else {
-      res.json({ valid: false });
-    }
+    const decoded = jwt.verify(token, JWT_SECRET);
+    res.json({ 
+      valid: true,
+      email: decoded.email,
+      name: decoded.name,
+      role: decoded.role
+    });
   } catch (error) {
     res.json({ valid: false });
   }
 });
 
+// Token验证中间件
+function verifyToken(req, res, next) {
+  const authHeader = req.headers.authorization;
+  
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ success: false, message: '未提供认证token' });
+  }
+  
+  const token = authHeader.substring(7);
+  
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch (error) {
+    return res.status(401).json({ success: false, message: 'Token无效或已过期' });
+  }
+}
+
 // 获取配置
-app.get('/api/admin/config', async (req, res) => {
+app.get('/api/admin/config', verifyToken, async (req, res) => {
   const config = await getConfig();
   // 返回扁平化的配置结构，方便前端使用
   res.json({
@@ -389,7 +426,7 @@ app.get('/api/admin/config', async (req, res) => {
 });
 
 // 保存配置
-app.post('/api/admin/config', async (req, res) => {
+app.post('/api/admin/config', verifyToken, async (req, res) => {
   const config = await getConfig();
   const data = req.body;
   
@@ -460,7 +497,7 @@ app.post('/api/admin/config', async (req, res) => {
 });
 
 // 修改密码
-app.post('/api/admin/change-password', async (req, res) => {
+app.post('/api/admin/change-password', verifyToken', async (req, res) => {
   const { email, oldPassword, newPassword } = req.body;
   const config = await getConfig();
   
@@ -484,7 +521,7 @@ app.post('/api/admin/change-password', async (req, res) => {
 });
 
 // 获取管理员列表
-app.get('/api/admin/admins', async (req, res) => {
+app.get('/api/admin/admins', verifyToken', async (req, res) => {
   try {
     const config = await getConfig();
     const admins = config.admins || [];
@@ -505,7 +542,7 @@ app.get('/api/admin/admins', async (req, res) => {
 });
 
 // 邀请新管理员
-app.post('/api/admin/invite', async (req, res) => {
+app.post('/api/admin/invite', verifyToken', async (req, res) => {
   try {
     const { email, name } = req.body;
     
@@ -590,7 +627,7 @@ app.post('/api/admin/invite', async (req, res) => {
 });
 
 // 删除管理员
-app.post('/api/admin/remove', async (req, res) => {
+app.post('/api/admin/remove', verifyToken', async (req, res) => {
   try {
     const { email } = req.body;
     
@@ -623,26 +660,26 @@ app.post('/api/admin/remove', async (req, res) => {
 });
 
 // 测试LLM API配置
-app.post('/api/admin/test-llm', async (req, res) => {
+app.post('/api/admin/test-llm', verifyToken', async (req, res) => {
   const { apiKey, apiEndpoint, model } = req.body;
   const result = await testLLMConfig({ apiKey, apiEndpoint, model });
   res.json(result);
 });
 
 // 获取文章列表
-app.get('/api/admin/articles', async (req, res) => {
+app.get('/api/admin/articles', verifyToken', async (req, res) => {
   const articles = await getArticles();
   res.json(articles);
 });
 
 // 获取留言列表
-app.get('/api/admin/contacts', async (req, res) => {
+app.get('/api/admin/contacts', verifyToken', async (req, res) => {
   const contacts = await getContacts();
   res.json(contacts);
 });
 
 // 生成文章
-app.post('/api/admin/generate-article', async (req, res) => {
+app.post('/api/admin/generate-article', verifyToken', async (req, res) => {
   try {
     const config = await getConfig();
     
@@ -674,7 +711,7 @@ app.post('/api/admin/generate-article', async (req, res) => {
 });
 
 // 删除文章
-app.delete('/api/admin/articles/:id', async (req, res) => {
+app.delete('/api/admin/articles', verifyToken/:id', async (req, res) => {
   const { id } = req.params;
   let articles = await getArticles();
   articles = articles.filter(a => a.id !== id);
@@ -864,7 +901,7 @@ async function scheduleArticleGeneration() {
 cron.schedule('0 2 * * *', scheduleArticleGeneration);
 
 // SSL证书管理API
-app.post('/api/admin/renew-certificate', async (req, res) => {
+app.post('/api/admin/renew-certificate', verifyToken', async (req, res) => {
   try {
     const result = await renewCertificate();
     res.json(result);
@@ -873,7 +910,7 @@ app.post('/api/admin/renew-certificate', async (req, res) => {
   }
 });
 
-app.get('/api/admin/certificate-info', async (req, res) => {
+app.get('/api/admin/certificate-info', verifyToken', async (req, res) => {
   try {
     const result = await getCertificateInfo();
     res.json(result);
@@ -883,7 +920,7 @@ app.get('/api/admin/certificate-info', async (req, res) => {
 });
 
 // 测试邮件发送API
-app.post('/api/admin/test-email', async (req, res) => {
+app.post('/api/admin/test-email', verifyToken', async (req, res) => {
   try {
     const { testEmail } = req.body;
     
@@ -972,7 +1009,7 @@ app.post('/api/admin/test-email', async (req, res) => {
 });
 
 // 测试飞书机器人
-app.post('/api/admin/test-feishu-bot', async (req, res) => {
+app.post('/api/admin/test-feishu-bot', verifyToken', async (req, res) => {
   try {
     const config = await getConfig();
     
@@ -1016,7 +1053,7 @@ app.post('/api/admin/test-feishu-bot', async (req, res) => {
 });
 
 // 测试飞书表格同步
-app.post('/api/admin/test-feishu-table', async (req, res) => {
+app.post('/api/admin/test-feishu-table', verifyToken', async (req, res) => {
   try {
     const config = await getConfig();
     
@@ -1069,7 +1106,7 @@ app.post('/api/admin/test-feishu-table', async (req, res) => {
 const usedUrlsManager = require('./used-urls-manager');
 
 // 获取已使用URL数量
-app.get('/api/admin/used-urls/count', async (req, res) => {
+app.get('/api/admin/used-urls', verifyToken/count', async (req, res) => {
   try {
     const count = await usedUrlsManager.getUsedUrlCount();
     res.json({ success: true, count });
@@ -1079,7 +1116,7 @@ app.get('/api/admin/used-urls/count', async (req, res) => {
 });
 
 // 获取所有已使用URL
-app.get('/api/admin/used-urls', async (req, res) => {
+app.get('/api/admin/used-urls', verifyToken', async (req, res) => {
   try {
     const urls = await usedUrlsManager.getUsedUrls();
     res.json({ success: true, urls });
@@ -1089,7 +1126,7 @@ app.get('/api/admin/used-urls', async (req, res) => {
 });
 
 // 清空已使用URL
-app.post('/api/admin/used-urls/clear', async (req, res) => {
+app.post('/api/admin/used-urls', verifyToken/clear', async (req, res) => {
   try {
     await usedUrlsManager.clearUsedUrls();
     res.json({ success: true, message: '已成功清空历史URL' });
@@ -1099,7 +1136,7 @@ app.post('/api/admin/used-urls/clear', async (req, res) => {
 });
 
 // 测试Unsplash API
-app.post('/api/admin/test-unsplash', async (req, res) => {
+app.post('/api/admin/test-unsplash', verifyToken', async (req, res) => {
   try {
     const { apiKey } = req.body;
     if (!apiKey) {
@@ -1261,7 +1298,7 @@ app.post('/api/admin/login-with-otp', async (req, res) => {
 
 
 // 获取所有管理员列表
-app.get('/api/admin/admins', async (req, res) => {
+app.get('/api/admin/admins', verifyToken', async (req, res) => {
   try {
     const config = await getConfig();
     const admins = config.admins || [];
@@ -1283,7 +1320,7 @@ app.get('/api/admin/admins', async (req, res) => {
 });
 
 // 添加管理员
-app.post('/api/admin/admins', async (req, res) => {
+app.post('/api/admin/admins', verifyToken', async (req, res) => {
   try {
     const { email, name, password } = req.body;
     
@@ -1320,7 +1357,7 @@ app.post('/api/admin/admins', async (req, res) => {
 });
 
 // 更新管理员信息
-app.put('/api/admin/admins/:email', async (req, res) => {
+app.put('/api/admin/admins', verifyToken/:email', async (req, res) => {
   try {
     const { email } = req.params;
     const { name, password } = req.body;
@@ -1353,7 +1390,7 @@ app.put('/api/admin/admins/:email', async (req, res) => {
 });
 
 // 删除管理员
-app.delete('/api/admin/admins/:email', async (req, res) => {
+app.delete('/api/admin/admins', verifyToken/:email', async (req, res) => {
   try {
     const { email } = req.params;
     
@@ -1388,7 +1425,7 @@ app.delete('/api/admin/admins/:email', async (req, res) => {
 const invitationTokens = new Map();
 
 // 发送管理员邀请
-app.post('/api/admin/invite', async (req, res) => {
+app.post('/api/admin/invite', verifyToken', async (req, res) => {
   try {
     const { email, name } = req.body;
     
@@ -1588,7 +1625,7 @@ app.post('/api/admin/accept-invite', async (req, res) => {
 // Removed duplicate endpoint - using the one at line 341 instead
 
 // 更新配置
-app.post('/api/admin/config', (req, res) => {
+app.post('/api/admin/config', verifyToken, (req, res) => {
   try {
     const updates = req.body;
     

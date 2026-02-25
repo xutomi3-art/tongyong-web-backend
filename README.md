@@ -92,6 +92,7 @@
 
 - 📝 **[API文档](./API.md)** - 完整的API接口说明。
 - ⬆️ **[部署指南](./DEPLOYMENT.md)** - 详细的生产环境部署步骤。
+- 🐛 **[部署问题修复记录](./DEPLOYMENT_ISSUES_FIXED.md)** - **（重要）** 实际部署中发现并修复的问题。
 - 🖼️ **[前端署名指南](./FRONTEND_ATTRIBUTION.md)** - **（重要）** 前端网站如何显示Unsplash署名。
 - 🔗 **[百度广告UTM配置指南](./BAIDU_ADS_UTM_GUIDE.md)** - 如何为百度广告系列配置UTM参数。
 

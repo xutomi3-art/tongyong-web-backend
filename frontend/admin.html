@@ -485,6 +485,48 @@ sudo certbot renew --dry-run</code></pre>
     let config = {};
     let articles = [];
 
+    // 检查登录状态
+    function checkAuth() {
+      const token = localStorage.getItem('adminToken');
+      if (!token) {
+        window.location.href = '/admin/login.html';
+        return false;
+      }
+      return token;
+    }
+
+    // 立即检查登录状态
+    const authToken = checkAuth();
+    if (!authToken) {
+      // 如果没有token，停止执行后续代码
+      throw new Error('未登录');
+    }
+
+    // 为所有API请求添加token
+    async function fetchWithAuth(url, options = {}) {
+      const token = localStorage.getItem('adminToken');
+      if (!token) {
+        window.location.href = '/admin/login.html';
+        throw new Error('未登录');
+      }
+      
+      options.headers = {
+        ...options.headers,
+        'Authorization': `Bearer ${token}`
+      };
+      
+      const response = await fetch(url, options);
+      
+      // 如果返回401，说明token无效
+      if (response.status === 401) {
+        localStorage.removeItem('adminToken');
+        window.location.href = '/admin/login.html';
+        throw new Error('登录已过期');
+      }
+      
+      return response;
+    }
+
     // 标签切换
     document.querySelectorAll('.tab-button').forEach(button => {
       button.addEventListener('click', () => {
@@ -533,7 +575,7 @@ sudo certbot renew --dry-run</code></pre>
     // 加载配置
     async function loadConfig() {
       try {
-        const response = await fetch(`${API_BASE}/admin/config`);
+        const response = await fetchWithAuth(`${API_BASE}/admin/config`);
         config = await response.json();
         
         // 加载品牌信息
@@ -594,7 +636,7 @@ sudo certbot renew --dry-run</code></pre>
           feishuTableUrl: document.getElementById('feishuTableUrl').value
         };
         
-        const response = await fetch(`${API_BASE}/admin/config`, {
+        const response = await fetchWithAuth(`${API_BASE}/admin/config`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(data)
@@ -622,7 +664,7 @@ sudo certbot renew --dry-run</code></pre>
           unsplashApiKey: document.getElementById('unsplashApiKey').value
         };
         
-        const response = await fetch(`${API_BASE}/admin/config`, {
+        const response = await fetchWithAuth(`${API_BASE}/admin/config`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(data)
@@ -659,7 +701,7 @@ sudo certbot renew --dry-run</code></pre>
           seoKeywords: document.getElementById('seoKeywords').value
         };
         
-        const response = await fetch(`${API_BASE}/admin/config`, {
+        const response = await fetchWithAuth(`${API_BASE}/admin/config`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(data)
@@ -681,7 +723,7 @@ sudo certbot renew --dry-run</code></pre>
       showStatus('⏳ 正在测试飞书 Webhook...', 'info');
       await saveMessageConfig();
       try {
-        const response = await fetch(`${API_BASE}/admin/test-feishu-webhook`, {
+        const response = await fetchWithAuth(`${API_BASE}/admin/test-feishu-webhook`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' }
         });
@@ -701,7 +743,7 @@ sudo certbot renew --dry-run</code></pre>
       showStatus('⏳ 正在测试飞书表格同步...', 'info');
       await saveMessageConfig();
       try {
-        const response = await fetch(`${API_BASE}/admin/test-feishu-table`, {
+        const response = await fetchWithAuth(`${API_BASE}/admin/test-feishu-table`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' }
         });
@@ -727,7 +769,7 @@ sudo certbot renew --dry-run</code></pre>
     async function generateArticle() {
       showStatus('⏳ 正在生成文章，请稍候...', 'info');
       try {
-        const response = await fetch(`${API_BASE}/admin/generate-article`, {
+        const response = await fetchWithAuth(`${API_BASE}/admin/generate-article`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' }
         });
@@ -746,7 +788,7 @@ sudo certbot renew --dry-run</code></pre>
     // 加载文章列表
     async function loadArticles() {
       try {
-        const response = await fetch(`${API_BASE}/admin/articles`);
+        const response = await fetchWithAuth(`${API_BASE}/admin/articles`);
         articles = await response.json();
         
         const listEl = document.getElementById('articleList');
@@ -789,7 +831,7 @@ sudo certbot renew --dry-run</code></pre>
     // 加载留言列表
     async function loadContacts() {
       try {
-        const response = await fetch(`${API_BASE}/admin/contacts`);
+        const response = await fetchWithAuth(`${API_BASE}/admin/contacts`);
         const contacts = await response.json();
         
         const listEl = document.getElementById('contactsList');
@@ -843,7 +885,7 @@ sudo certbot renew --dry-run</code></pre>
       if (!confirm('确定要删除这篇文章吗？')) return;
       
       try {
-        const response = await fetch(`${API_BASE}/admin/articles/${id}`, {
+        const response = await fetchWithAuth(`${API_BASE}/admin/articles/${id}`, {
           method: 'DELETE'
         });
         const result = await response.json();
@@ -875,7 +917,7 @@ sudo certbot renew --dry-run</code></pre>
       }
       
       try {
-        const response = await fetch(`${API_BASE}/admin/change-password`, {
+        const response = await fetchWithAuth(`${API_BASE}/admin/change-password`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ currentPassword: current, newPassword: newPass })
@@ -901,14 +943,14 @@ sudo certbot renew --dry-run</code></pre>
     function logout() {
       if (confirm('确定要退出登录吗？')) {
         localStorage.removeItem('adminToken');
-        window.location.href = '/';
+        window.location.href = '/admin/login.html';
       }
     }
 
     // 加载已使用URL数量
     async function loadUsedUrlCount() {
       try {
-        const response = await fetch(`${API_BASE}/admin/used-urls/count`);
+        const response = await fetchWithAuth(`${API_BASE}/admin/used-urls/count`);
         const result = await response.json();
         if (result.success) {
           document.getElementById('usedUrlCount').textContent = result.count || 0;
@@ -925,7 +967,7 @@ sudo certbot renew --dry-run</code></pre>
       }
       
       try {
-        const response = await fetch(`${API_BASE}/admin/used-urls/clear`, {
+        const response = await fetchWithAuth(`${API_BASE}/admin/used-urls/clear`, {
           method: 'POST'
         });
         const result = await response.json();
@@ -972,7 +1014,7 @@ sudo certbot renew --dry-run</code></pre>
         await saveAIConfig();
         
         // 测试API
-        const response = await fetch(`${API_BASE}/admin/test-unsplash`, {
+        const response = await fetchWithAuth(`${API_BASE}/admin/test-unsplash`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ apiKey })
@@ -996,7 +1038,7 @@ sudo certbot renew --dry-run</code></pre>
       
       showStatus('⏳ 正在清空记录...', 'info');
       try {
-        const response = await fetch(`${API_BASE}/admin/clear-unsplash-images`, {
+        const response = await fetchWithAuth(`${API_BASE}/admin/clear-unsplash-images`, {
           method: 'POST'
         });
         
@@ -1014,7 +1056,7 @@ sudo certbot renew --dry-run</code></pre>
 
     async function loadUnsplashStats() {
       try {
-        const response = await fetch(`${API_BASE}/admin/unsplash-stats`);
+        const response = await fetchWithAuth(`${API_BASE}/admin/unsplash-stats`);
         const result = await response.json();
         if (result.success) {
           document.getElementById('unsplashUsedCount').textContent = result.count || 0;
@@ -1027,7 +1069,7 @@ sudo certbot renew --dry-run</code></pre>
     // 管理员管理功能
     async function loadAdmins() {
       try {
-        const response = await fetch(`${API_BASE}/admin/admins`);
+        const response = await fetchWithAuth(`${API_BASE}/admin/admins`);
         const result = await response.json();
         
         if (result.success && result.admins) {
@@ -1074,7 +1116,7 @@ sudo certbot renew --dry-run</code></pre>
       showStatus('⏳ 正在发送邀请邮件...', 'info');
       
       try {
-        const response = await fetch(`${API_BASE}/admin/invite`, {
+        const response = await fetchWithAuth(`${API_BASE}/admin/invite`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, name })
@@ -1100,7 +1142,7 @@ sudo certbot renew --dry-run</code></pre>
       }
       
       try {
-        const response = await fetch(`${API_BASE}/admin/remove`, {
+        const response = await fetchWithAuth(`${API_BASE}/admin/remove`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email })
