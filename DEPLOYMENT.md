@@ -96,6 +96,29 @@ pm2 save
 
 ## 3. 配置Nginx反向代理
 
+### ⚠️ 重要：前端路由集成要求
+
+**如果您的前端项目使用了客户端路由（如React Router、Vue Router、Next.js等），必须配置路由排除 `/admin/` 路径。**
+
+前端SPA应用的客户端路由会在浏览器中拦截所有URL，即使Nginx正确返回了后台管理系统的HTML文件，前端路由也会重新渲染自己的页面，导致后台管理系统无法访问。
+
+**解决方案**：在前端项目的 `index.html` 中，在所有脚本加载之前添加：
+
+```html
+<script>
+  // 检查是否访问后台管理系统
+  if (window.location.pathname.startsWith('/admin/')) {
+    // 阻止前端框架初始化
+    window.__ADMIN_PATH__ = true;
+    throw new Error('Admin path detected');
+  }
+</script>
+```
+
+📚 **详细的各框架配置示例请参考**：[DEPLOYMENT_ISSUES_FIXED.md](./DEPLOYMENT_ISSUES_FIXED.md#%E9%97%AE%E9%A2%982-%E5%89%8D%E7%AB%AF%E8%B7%AF%E7%94%B1%E5%86%B2%E7%AA%81%E5%AF%BC%E8%87%B4%E5%90%8E%E5%8F%B0%E6%97%A0%E6%B3%95%E8%AE%BF%E9%97%AE)
+
+---
+
 为了通过域名访问你的后台服务，并增加一层安全保护，需要配置Nginx作为反向代理。
 
 ### 3.1 创建Nginx配置文件
@@ -114,8 +137,15 @@ server {
     listen 80;
     server_name your_domain.com;
 
-    location / {
-        proxy_pass http://localhost:3000; # 将请求转发到Node.js应用
+    # 后台管理系统 - 必须在前端路由之前
+    location /admin/ {
+        alias /var/www/tongyong-web-backend/frontend/;
+        try_files $uri $uri/ =404;
+    }
+
+    # API代理
+    location /api/ {
+        proxy_pass http://localhost:3000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -125,8 +155,19 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_cache_bypass $http_upgrade;
     }
+
+    # 前端应用 - 放在最后
+    location / {
+        root /var/www/your-frontend/dist;
+        try_files $uri $uri/ /index.html;
+    }
 }
 ```
+
+**重要说明**：
+- `/admin/` location 必须在 `/` 之前定义
+- 使用 `alias` 而不是 `root`
+- 后台使用 `=404`，前端使用 `/index.html`（SPA路由）
 
 ### 3.2 启用配置并重启Nginx
 
