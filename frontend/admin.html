@@ -168,6 +168,100 @@
       <div id="tab-contacts" class="tab-content">
         <h2 class="text-2xl font-bold text-gray-800 mb-6">留言管理</h2>
         
+        <!-- UTM链接生成器 -->
+        <div class="mb-8 p-6 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border border-purple-200">
+          <h3 class="text-lg font-semibold text-gray-800 mb-4">📊 广告来源跟踪 - UTM链接生成器</h3>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">广告来源 (utm_source)</label>
+              <select id="utmSource" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500" onchange="generateUTMLink()">
+                <option value="">选择或自定义...</option>
+                <option value="google">谷歌广告</option>
+                <option value="facebook">脸书广告</option>
+                <option value="tiktok">抖音广告</option>
+                <option value="wechat">微信广告</option>
+                <option value="baidu">百度广告</option>
+                <option value="xiaohongshu">小红书</option>
+                <option value="weibo">微博</option>
+                <option value="zhihu">知乎</option>
+                <option value="email">邮件营销</option>
+                <option value="custom">自定义...</option>
+              </select>
+              <input type="text" id="utmSourceCustom" placeholder="输入自定义来源" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 mt-2 hidden" onchange="generateUTMLink()">
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">广告媒介 (utm_medium)</label>
+              <select id="utmMedium" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500" onchange="generateUTMLink()">
+                <option value="">选择或自定义...</option>
+                <option value="cpc">点击付费 (CPC)</option>
+                <option value="cpm">展示付费 (CPM)</option>
+                <option value="social">社交媒体</option>
+                <option value="email">邮件</option>
+                <option value="banner">横幅广告</option>
+                <option value="video">视频广告</option>
+                <option value="organic">自然流量</option>
+                <option value="referral">推荐流量</option>
+                <option value="custom">自定义...</option>
+              </select>
+              <input type="text" id="utmMediumCustom" placeholder="输入自定义媒介" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 mt-2 hidden" onchange="generateUTMLink()">
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">广告系列 (utm_campaign)</label>
+              <input type="text" id="utmCampaign" placeholder="例如：2024春季促销" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500" onchange="generateUTMLink()">
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">关键词 (utm_term) <span class="text-gray-400">可选</span></label>
+              <input type="text" id="utmTerm" placeholder="例如：智能手机" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500" onchange="generateUTMLink()">
+            </div>
+            
+            <div class="md:col-span-2">
+              <label class="block text-sm font-medium text-gray-700 mb-2">广告内容 (utm_content) <span class="text-gray-400">可选</span></label>
+              <input type="text" id="utmContent" placeholder="例如：红色按钮" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500" onchange="generateUTMLink()">
+            </div>
+          </div>
+          
+          <!-- 生成的链接 -->
+          <div class="mt-6 p-4 bg-white rounded-lg border border-purple-200">
+            <label class="block text-sm font-medium text-gray-700 mb-2">生成的投放链接：</label>
+            <div class="flex gap-2">
+              <input type="text" id="generatedUTMLink" readonly class="flex-1 px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg font-mono text-sm" placeholder="请选择广告来源和媒介后自动生成">
+              <button onclick="copyUTMLink()" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition">
+                📋 复制链接
+              </button>
+            </div>
+            <p class="mt-2 text-xs text-gray-500">ℹ️ 此链接包含UTM参数，用于跟踪广告效果。用户通过此链接访问网站后，留言会自动带上来源信息。</p>
+          </div>
+          
+          <!-- 快速预设 -->
+          <div class="mt-4">
+            <h4 class="text-sm font-medium text-gray-700 mb-2">⚡ 快速预设：</h4>
+            <div class="flex flex-wrap gap-2">
+              <button onclick="applyUTMPreset('google', 'cpc', '谷歌搜索广告')" class="px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition text-sm">
+                🔍 谷歌搜索
+              </button>
+              <button onclick="applyUTMPreset('facebook', 'social', '脸书社交广告')" class="px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition text-sm">
+                👥 脸书广告
+              </button>
+              <button onclick="applyUTMPreset('tiktok', 'video', '抖音视频广告')" class="px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition text-sm">
+                🎵 抖音广告
+              </button>
+              <button onclick="applyUTMPreset('wechat', 'social', '微信公众号')" class="px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition text-sm">
+                📱 微信公众号
+              </button>
+              <button onclick="applyUTMPreset('xiaohongshu', 'social', '小红书种草')" class="px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition text-sm">
+                📖 小红书
+              </button>
+              <button onclick="applyUTMPreset('email', 'email', '邮件营销')" class="px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition text-sm">
+                ✉️ 邮件营销
+              </button>
+            </div>
+          </div>
+        </div>
+        
         <div id="contactsList" class="space-y-4">
           <p class="text-gray-500 text-center py-8">加载中...</p>
         </div>
@@ -454,29 +548,52 @@
         <div class="mt-8 p-6 bg-green-50 rounded-lg">
           <h3 class="text-lg font-semibold text-gray-800 mb-4">🔐 SSL 证书管理</h3>
           
-          <div class="space-y-4">
-            <p class="text-gray-600">
-              请使用 <strong>Let's Encrypt</strong> 或其他SSL证书提供商为您的域名申请免费SSL证书。
-            </p>
-            <div class="bg-white p-4 rounded border border-green-200">
-              <h4 class="font-medium text-gray-800 mb-2">📚 推荐工具：</h4>
-              <ul class="list-disc list-inside space-y-1 text-sm text-gray-600">
-                <li><strong>Certbot</strong>: Let's Encrypt 官方工具，自动化申请和更新</li>
-                <li><strong>acme.sh</strong>: 轻量级Shell脚本，支持多种DNS提供商</li>
-                <li><strong>云服务商</strong>: 阿里云、腾讯云等提供免费SSL证书申请服务</li>
-              </ul>
+          <!-- 证书状态 -->
+          <div class="mb-6 p-4 bg-white rounded-lg border border-green-200">
+            <h4 class="font-medium text-gray-800 mb-3">📊 证书状态</h4>
+            <div class="space-y-2 text-sm">
+              <div class="flex justify-between">
+                <span class="text-gray-600">域名：</span>
+                <span class="font-medium" id="sslDomain">加载中...</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-600">证书到期时间：</span>
+                <span class="font-medium" id="sslExpiry">加载中...</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-600">剩余天数：</span>
+                <span class="font-medium" id="sslDaysLeft">加载中...</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-600">自动续订：</span>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="sslAutoRenew" class="sr-only peer" onchange="toggleAutoRenew()">
+                  <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                  <span class="ml-3 text-sm font-medium text-gray-700" id="autoRenewStatus">已关闭</span>
+                </label>
+              </div>
             </div>
-            <div class="bg-blue-50 p-4 rounded border border-blue-200">
-              <h4 class="font-medium text-gray-800 mb-2">👨‍💻 安装示例（Certbot）：</h4>
-              <pre class="bg-gray-800 text-green-400 p-3 rounded text-xs overflow-x-auto"><code># 安装Certbot
-sudo apt install certbot python3-certbot-nginx
-
-# 申请证书（替换为您的域名）
-sudo certbot --nginx -d your-domain.com
-
-# 设置自动更新
-sudo certbot renew --dry-run</code></pre>
-            </div>
+          </div>
+          
+          <!-- 操作按钮 -->
+          <div class="flex gap-3 mb-4">
+            <button onclick="renewSSL()" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition">
+              🔄 手动续订证书
+            </button>
+            <button onclick="checkSSLStatus()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+              🔍 检查证书状态
+            </button>
+          </div>
+          
+          <!-- 说明信息 -->
+          <div class="bg-blue-50 p-4 rounded border border-blue-200">
+            <h4 class="font-medium text-gray-800 mb-2">ℹ️ 说明：</h4>
+            <ul class="list-disc list-inside space-y-1 text-sm text-gray-600">
+              <li>系统使用 Let's Encrypt 提供的免费SSL证书</li>
+              <li>证书有效期为90天，建议开启自动续订</li>
+              <li>自动续订将在证书到期前30天自动执行</li>
+              <li>手动续订会立即尝试更新证书</li>
+            </ul>
           </div>
         </div>
       </div>
@@ -1235,6 +1352,193 @@ sudo certbot renew --dry-run</code></pre>
           }
         });
       }, 500);
+    });
+
+    // UTM链接生成器函数
+    function generateUTMLink() {
+      const sourceSelect = document.getElementById('utmSource');
+      const mediumSelect = document.getElementById('utmMedium');
+      const sourceCustom = document.getElementById('utmSourceCustom');
+      const mediumCustom = document.getElementById('utmMediumCustom');
+      
+      // 处理自定义输入框显示/隐藏
+      if (sourceSelect.value === 'custom') {
+        sourceCustom.classList.remove('hidden');
+      } else {
+        sourceCustom.classList.add('hidden');
+      }
+      
+      if (mediumSelect.value === 'custom') {
+        mediumCustom.classList.remove('hidden');
+      } else {
+        mediumCustom.classList.add('hidden');
+      }
+      
+      // 获取值
+      const source = sourceSelect.value === 'custom' ? sourceCustom.value : sourceSelect.value;
+      const medium = mediumSelect.value === 'custom' ? mediumCustom.value : mediumSelect.value;
+      const campaign = document.getElementById('utmCampaign').value;
+      const term = document.getElementById('utmTerm').value;
+      const content = document.getElementById('utmContent').value;
+      
+      // 至少需要source和medium
+      if (!source || !medium) {
+        document.getElementById('generatedUTMLink').value = '';
+        return;
+      }
+      
+      // 获取网站域名
+      const domain = window.location.origin;
+      
+      // 构建UTM参数
+      const params = new URLSearchParams();
+      params.append('utm_source', source);
+      params.append('utm_medium', medium);
+      if (campaign) params.append('utm_campaign', campaign);
+      if (term) params.append('utm_term', term);
+      if (content) params.append('utm_content', content);
+      
+      // 生成完整链接
+      const link = `${domain}?${params.toString()}`;
+      document.getElementById('generatedUTMLink').value = link;
+    }
+    
+    function applyUTMPreset(source, medium, campaign) {
+      document.getElementById('utmSource').value = source;
+      document.getElementById('utmMedium').value = medium;
+      document.getElementById('utmCampaign').value = campaign;
+      document.getElementById('utmTerm').value = '';
+      document.getElementById('utmContent').value = '';
+      generateUTMLink();
+      showStatus(`✅ 已应用预设: ${campaign}`, 'success');
+    }
+    
+    function copyUTMLink() {
+      const linkInput = document.getElementById('generatedUTMLink');
+      const link = linkInput.value;
+      
+      if (!link) {
+        showStatus('⚠️ 请先生成UTM链接', 'error');
+        return;
+      }
+      
+      // 复制到剪贴板
+      navigator.clipboard.writeText(link).then(() => {
+        showStatus('✅ 链接已复制到剪贴板！', 'success');
+        linkInput.select();
+      }).catch(err => {
+        // 备用方案
+        linkInput.select();
+        document.execCommand('copy');
+        showStatus('✅ 链接已复制到剪贴板！', 'success');
+      });
+    }
+
+    // SSL证书管理函数
+    async function checkSSLStatus() {
+      showStatus('⏳ 正在检查SSL证书状态...', 'info');
+      try {
+        const response = await fetchWithAuth(`${API_BASE}/admin/ssl-status`, {
+          method: 'GET'
+        });
+        const result = await response.json();
+        
+        if (result.success) {
+          updateSSLDisplay(result.data);
+          showStatus('✅ SSL证书状态检查完成', 'success');
+        } else {
+          showStatus(`❌ 检查失败: ${result.error}`, 'error');
+        }
+      } catch (error) {
+        showStatus(`❌ 检查失败: ${error.message}`, 'error');
+      }
+    }
+
+    function updateSSLDisplay(data) {
+      document.getElementById('sslDomain').textContent = data.domain || '未配置';
+      document.getElementById('sslExpiry').textContent = data.expiry || '未知';
+      
+      const daysLeft = data.daysLeft;
+      const daysLeftEl = document.getElementById('sslDaysLeft');
+      if (daysLeft !== undefined) {
+        daysLeftEl.textContent = `${daysLeft} 天`;
+        if (daysLeft < 7) {
+          daysLeftEl.className = 'font-medium text-red-600';
+        } else if (daysLeft < 30) {
+          daysLeftEl.className = 'font-medium text-orange-600';
+        } else {
+          daysLeftEl.className = 'font-medium text-green-600';
+        }
+      } else {
+        daysLeftEl.textContent = '未知';
+      }
+      
+      const autoRenewCheckbox = document.getElementById('sslAutoRenew');
+      const autoRenewStatus = document.getElementById('autoRenewStatus');
+      if (data.autoRenew) {
+        autoRenewCheckbox.checked = true;
+        autoRenewStatus.textContent = '已开启';
+      } else {
+        autoRenewCheckbox.checked = false;
+        autoRenewStatus.textContent = '已关闭';
+      }
+    }
+
+    async function renewSSL() {
+      if (!confirm('确定要立即续订SSL证书吗？这个操作可能需要几分钟。')) {
+        return;
+      }
+      
+      showStatus('⏳ 正在续订SSL证书，请稍候...', 'info');
+      try {
+        const response = await fetchWithAuth(`${API_BASE}/admin/ssl-renew`, {
+          method: 'POST'
+        });
+        const result = await response.json();
+        
+        if (result.success) {
+          showStatus('✅ SSL证书续订成功！', 'success');
+          await checkSSLStatus(); // 刷新状态
+        } else {
+          showStatus(`❌ 续订失败: ${result.error}`, 'error');
+        }
+      } catch (error) {
+        showStatus(`❌ 续订失败: ${error.message}`, 'error');
+      }
+    }
+
+    async function toggleAutoRenew() {
+      const checkbox = document.getElementById('sslAutoRenew');
+      const status = document.getElementById('autoRenewStatus');
+      const enabled = checkbox.checked;
+      
+      showStatus(`⏳ 正在${enabled ? '开启' : '关闭'}自动续订...`, 'info');
+      try {
+        const response = await fetchWithAuth(`${API_BASE}/admin/ssl-auto-renew`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ enabled })
+        });
+        const result = await response.json();
+        
+        if (result.success) {
+          status.textContent = enabled ? '已开启' : '已关闭';
+          showStatus(`✅ 自动续订已${enabled ? '开启' : '关闭'}`, 'success');
+        } else {
+          checkbox.checked = !enabled; // 恢复原状态
+          showStatus(`❌ 设置失败: ${result.error}`, 'error');
+        }
+      } catch (error) {
+        checkbox.checked = !enabled; // 恢复原状态
+        showStatus(`❌ 设置失败: ${error.message}`, 'error');
+      }
+    }
+
+    // 页面加载时检查SSL状态
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        checkSSLStatus();
+      }, 1000);
     });
   </script>
 </body>

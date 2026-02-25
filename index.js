@@ -1065,6 +1065,43 @@ app.post('/api/admin/test-smtp', verifyToken, async (req, res) => {
   }
 });
 
+// SSL证书管理API
+const { getSSLStatus, renewSSL, setAutoRenew } = require('./cert-manager');
+
+// 获取SSL证书状态
+app.get('/api/admin/ssl-status', verifyToken, async (req, res) => {
+  try {
+    const result = await getSSLStatus();
+    res.json(result);
+  } catch (error) {
+    console.error('Get SSL status error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// 续订SSL证书
+app.post('/api/admin/ssl-renew', verifyToken, async (req, res) => {
+  try {
+    const result = await renewSSL();
+    res.json(result);
+  } catch (error) {
+    console.error('Renew SSL error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// 设置自动续订
+app.post('/api/admin/ssl-auto-renew', verifyToken, async (req, res) => {
+  try {
+    const { enabled } = req.body;
+    const result = await setAutoRenew(enabled);
+    res.json(result);
+  } catch (error) {
+    console.error('Set auto-renew error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // 测试飞书机器人
 app.post('/api/admin/test-feishu-bot', verifyToken, async (req, res) => {
   try {
