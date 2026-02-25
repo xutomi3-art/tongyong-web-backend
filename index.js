@@ -10,7 +10,7 @@ const { generateArticle: generateArticleNew, generateArticles, testLLMConfig } =
 const { sendToFeishuBot, syncToFeishuTable } = require('./feishu-integration');
 
 const app = express();
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 const DATA_DIR = path.join(__dirname, 'data');
 const CONFIG_FILE = path.join(DATA_DIR, 'config.json');
 const ARTICLES_FILE = path.join(DATA_DIR, 'articles.json');
@@ -22,6 +22,9 @@ const captchaStore = new Map();
 // 中间件
 app.use(cors());
 app.use(express.json());
+
+// 静态文件服务 - 托管前端管理界面
+app.use('/admin', express.static(path.join(__dirname, 'frontend')));
 
 // 确保数据目录存在
 async function ensureDataDir() {
@@ -284,7 +287,32 @@ app.post('/api/admin/login', async (req, res) => {
       token: Buffer.from(`${username}:${password}`).toString('base64')
     });
   } else {
-    res.status(401).json({ success: false, message: 'Invalid credentials' });
+    res.status(401).json({ success: false, message: '用户名或密码错误' });
+  }
+});
+
+// 验证token
+app.get('/api/admin/verify', async (req, res) => {
+  const authHeader = req.headers.authorization;
+  
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.json({ valid: false });
+  }
+  
+  const token = authHeader.substring(7);
+  
+  try {
+    const decoded = Buffer.from(token, 'base64').toString('utf-8');
+    const [username, password] = decoded.split(':');
+    const config = await getConfig();
+    
+    if (username === config.adminUsername && password === config.adminPassword) {
+      res.json({ valid: true });
+    } else {
+      res.json({ valid: false });
+    }
+  } catch (error) {
+    res.json({ valid: false });
   }
 });
 
