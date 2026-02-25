@@ -109,6 +109,12 @@
                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
             </div>
           </div>
+          <div class="mt-4">
+            <button onclick="testSMTP()" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+              测试发送邮件
+            </button>
+            <span class="ml-3 text-sm text-gray-600">点击后将发送测试邮件到接收邮箱</span>
+          </div>
         </div>
 
         <!-- 飞书集成 -->
@@ -719,6 +725,25 @@ sudo certbot renew --dry-run</code></pre>
     }
 
     // 测试飞书Webhook
+    async function testSMTP() {
+      showStatus('⏳ 正在发送测试邮件...', 'info');
+      await saveMessageConfig();
+      try {
+        const response = await fetchWithAuth(`${API_BASE}/admin/test-smtp`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        const result = await response.json();
+        if (result.success) {
+          showStatus('✅ 测试邮件发送成功！请检查接收邮箱', 'success');
+        } else {
+          showStatus(`❌ 发送失败: ${result.error}`, 'error');
+        }
+      } catch (error) {
+        showStatus(`❌ 发送失败: ${error.message}`, 'error');
+      }
+    }
+
     async function testFeishuWebhook() {
       showStatus('⏳ 正在测试飞书 Webhook...', 'info');
       await saveMessageConfig();

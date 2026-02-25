@@ -1008,6 +1008,62 @@ app.post('/api/admin/test-email', verifyToken, async (req, res) => {
   }
 });
 
+// 测试SMTP发送邮件
+app.post('/api/admin/test-smtp', verifyToken, async (req, res) => {
+  try {
+    const config = await getConfig();
+    
+    // 检查SMTP是否配置
+    if (!config.emailConfig || !config.emailConfig.host || !config.emailConfig.user || !config.emailConfig.password) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'SMTP未配置，请先配置SMTP信息' 
+      });
+    }
+    
+    // 检查接收邮箱是否配置
+    if (!config.emailConfig.adminEmail) {
+      return res.status(400).json({ 
+        success: false, 
+        error: '接收邮箱未配置' 
+      });
+    }
+    
+    // 发送测试邮件
+    const testEmailHtml = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+          <h1 style="color: white; margin: 0; font-size: 28px;">📧 SMTP测试邮件</h1>
+        </div>
+        <div style="background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px;">
+          <p style="font-size: 16px; color: #333; line-height: 1.6;">
+            这是一封SMTP配置测试邮件。
+          </p>
+          <p style="font-size: 16px; color: #333; line-height: 1.6;">
+            如果您收到这封邮件，说明您的SMTP配置正确！
+          </p>
+          <div style="margin-top: 30px; padding: 20px; background: white; border-radius: 8px; border-left: 4px solid #667eea;">
+            <p style="margin: 0; color: #666; font-size: 14px;"><strong>发送时间:</strong> ${new Date().toLocaleString('zh-CN')}</p>
+            <p style="margin: 10px 0 0 0; color: #666; font-size: 14px;"><strong>SMTP服务器:</strong> ${config.emailConfig.host}:${config.emailConfig.port}</p>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    const emailSubject = `${config.emailConfig.emailSubjectPrefix || ''} SMTP测试邮件`.trim();
+    const success = await sendEmail(config.emailConfig.adminEmail, emailSubject, testEmailHtml);
+    
+    if (success) {
+      res.json({ success: true, message: '测试邮件发送成功' });
+    } else {
+      res.status(500).json({ success: false, error: '邮件发送失败，请检查SMTP配置' });
+    }
+  } catch (error) {
+    console.error('测试SMTP失败:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // 测试飞书机器人
 app.post('/api/admin/test-feishu-bot', verifyToken, async (req, res) => {
   try {
@@ -1242,7 +1298,7 @@ app.post('/api/admin/forgot-password', async (req, res) => {
         <p style="color: #666; font-size: 12px;">此邮件由系统自动发送，请勿回复。</p>
       `;
       
-      await sendEmail(config.emailConfig.user, emailSubject, emailHtml);
+      await sendEmail(email, emailSubject, emailHtml);
     }
     
     res.json({ success: true, message: '如果该邮箱存在，我们已发送一次性密码到您的邮箱' });
