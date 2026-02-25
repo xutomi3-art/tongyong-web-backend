@@ -183,9 +183,9 @@ async function generateArticle() {
   } : null;
   
   const imageConfig = {
-    useAI: config.imageUseAI,
-    apiKey: config.imageApiKey,
-    unsplashApiKey: config.unsplashApiKey
+    useAI: config.imageConfig?.useAI ?? config.imageUseAI,
+    apiKey: config.imageConfig?.aiApiKey ?? config.imageApiKey,
+    unsplashApiKey: config.imageConfig?.unsplashApiKey ?? config.unsplashApiKey
   };
   
   return await generateArticleNew(llmConfig, imageConfig);
@@ -691,11 +691,11 @@ app.post('/api/admin/generate-article', verifyToken, async (req, res) => {
       model: config.llmModel
     } : null;
     
-    // 准备图片配置
+    // 准备图片配置（优先使用嵌套的imageConfig，兼容旧的扁平结构）
     const imageConfig = {
-      useAI: config.imageUseAI,
-      apiKey: config.imageApiKey,
-      unsplashApiKey: config.unsplashApiKey
+      useAI: config.imageConfig?.useAI ?? config.imageUseAI,
+      apiKey: config.imageConfig?.aiApiKey ?? config.imageApiKey,
+      unsplashApiKey: config.imageConfig?.unsplashApiKey ?? config.unsplashApiKey
     };
     
     console.log('[DEBUG] config.unsplashApiKey:', config.unsplashApiKey);
