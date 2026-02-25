@@ -9,6 +9,7 @@
 为了帮助您更轻松地部署和配置此系统，我们编写了专属的AI部署指南。在开始之前，请务必阅读：
 
 - 🚀 **[AI部署指南 (AI_DEPLOYMENT_GUIDE.md)](./AI_DEPLOYMENT_GUIDE.md)**
+- 🔧 **[部署故障排除 (DEPLOYMENT_TROUBLESHOOTING.md)](./DEPLOYMENT_TROUBLESHOOTING.md)** - 常见问题及解决方案
 
 ---
 

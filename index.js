@@ -340,45 +340,120 @@ app.get('/api/admin/verify', async (req, res) => {
 // 获取配置
 app.get('/api/admin/config', async (req, res) => {
   const config = await getConfig();
-  // 返回完整配置，但隐藏敏感信息（密码部分隐藏）
+  // 返回扁平化的配置结构，方便前端使用
   res.json({
-    email: config.email,
-    autoPostEnabled: config.autoPostEnabled,
-    postsPerDay: config.postsPerDay,
-    autoPostTime: config.autoPostTime,
-    aiArticleCount: config.aiArticleCount,
-    rewriteArticleCount: config.rewriteArticleCount,
-    autoPostInterval: config.autoPostInterval,
-    enableSearchRewrite: config.enableSearchRewrite,
-    rewriteRounds: config.rewriteRounds,
-    seoKeywords: config.seoKeywords,
-    llmApiKey: config.llmApiKey,
-    llmApiEndpoint: config.llmApiEndpoint,
-    llmModel: config.llmModel,
-    imageUseAI: config.imageUseAI,
-    imageApiKey: config.imageApiKey,
-    smtpHost: config.smtpHost,
-    smtpPort: config.smtpPort,
-    smtpUser: config.smtpUser,
-    smtpPassword: config.smtpPassword, // 在生产环境中可以考虑隐藏
-    smtpFrom: config.smtpFrom,
-    feishuWebhook: config.feishuWebhook,
-    feishuTableUrl: config.feishuTableUrl,
-    feishuAppId: config.feishuAppId,
-    feishuAppSecret: config.feishuAppSecret // 在生产环境中可以考虑隐藏
+    // 品牌配置
+    brandName: config.brandConfig?.name || '',
+    brandDescription: config.brandConfig?.description || '',
+    adminTitle: config.brandConfig?.adminTitle || '管理后台',
+    emailSubjectPrefix: config.brandConfig?.emailSubjectPrefix || '',
+    websiteUrl: config.brandConfig?.websiteUrl || '',
+    
+    // 邮件配置
+    email: config.emailConfig?.adminEmail || '',
+    smtpHost: config.emailConfig?.host || '',
+    smtpPort: config.emailConfig?.port || 465,
+    smtpUser: config.emailConfig?.user || '',
+    smtpPassword: config.emailConfig?.pass || '',
+    smtpFrom: config.emailConfig?.from || '',
+    
+    // 飞书配置
+    feishuWebhook: config.feishuConfig?.webhookUrl || '',
+    feishuAppId: config.feishuConfig?.appId || '',
+    feishuAppSecret: config.feishuConfig?.appSecret || '',
+    feishuTableUrl: config.feishuConfig?.tableUrl || '',
+    
+    // LLM配置
+    llmApiKey: config.llmConfig?.apiKey || '',
+    llmApiEndpoint: config.llmConfig?.baseURL || '',
+    llmModel: config.llmConfig?.model || '',
+    
+    // 图片配置
+    unsplashApiKey: config.imageConfig?.unsplashApiKey || '',
+    imageUseAI: config.imageConfig?.useAI || false,
+    imageApiKey: config.imageConfig?.aiApiKey || '',
+    enableImageDeduplication: config.imageConfig?.enableDeduplication || false,
+    deduplicationWindow: config.imageConfig?.deduplicationWindow || 5,
+    
+    // SEO配置
+    autoPostEnabled: config.seoConfig?.autoPublish || false,
+    autoPostTime: config.seoConfig?.publishTime || '09:00',
+    autoPostInterval: config.seoConfig?.publishInterval || 24,
+    postsPerDay: config.seoConfig?.postsPerDay || 5,
+    aiArticleCount: config.seoConfig?.aiArticleCount || 1,
+    rewriteArticleCount: config.seoConfig?.rewriteArticleCount || 0,
+    enableSearchRewrite: config.seoConfig?.enableSearchRewrite || false,
+    rewriteRounds: config.seoConfig?.rewriteRounds || 3,
+    seoKeywords: config.seoConfig?.keywords || ''
   });
 });
 
 // 保存配置
 app.post('/api/admin/config', async (req, res) => {
   const config = await getConfig();
+  const data = req.body;
   
-  // 更新所有配置字段
-  Object.keys(req.body).forEach(key => {
-    if (key !== 'adminPassword') { // 密码单独处理
-      config[key] = req.body[key];
-    }
-  });
+  // 更新品牌配置
+  if (data.brandName !== undefined || data.brandDescription !== undefined || data.adminTitle !== undefined || data.emailSubjectPrefix !== undefined || data.websiteUrl !== undefined) {
+    config.brandConfig = config.brandConfig || {};
+    if (data.brandName !== undefined) config.brandConfig.name = data.brandName;
+    if (data.brandDescription !== undefined) config.brandConfig.description = data.brandDescription;
+    if (data.adminTitle !== undefined) config.brandConfig.adminTitle = data.adminTitle;
+    if (data.emailSubjectPrefix !== undefined) config.brandConfig.emailSubjectPrefix = data.emailSubjectPrefix;
+    if (data.websiteUrl !== undefined) config.brandConfig.websiteUrl = data.websiteUrl;
+  }
+  
+  // 更新邮件配置
+  if (data.email !== undefined || data.smtpHost !== undefined || data.smtpPort !== undefined || data.smtpUser !== undefined || data.smtpPassword !== undefined || data.smtpFrom !== undefined) {
+    config.emailConfig = config.emailConfig || {};
+    if (data.email !== undefined) config.emailConfig.adminEmail = data.email;
+    if (data.smtpHost !== undefined) config.emailConfig.host = data.smtpHost;
+    if (data.smtpPort !== undefined) config.emailConfig.port = data.smtpPort;
+    if (data.smtpUser !== undefined) config.emailConfig.user = data.smtpUser;
+    if (data.smtpPassword !== undefined) config.emailConfig.pass = data.smtpPassword;
+    if (data.smtpFrom !== undefined) config.emailConfig.from = data.smtpFrom;
+  }
+  
+  // 更新飞书配置
+  if (data.feishuWebhook !== undefined || data.feishuAppId !== undefined || data.feishuAppSecret !== undefined || data.feishuTableUrl !== undefined) {
+    config.feishuConfig = config.feishuConfig || {};
+    if (data.feishuWebhook !== undefined) config.feishuConfig.webhookUrl = data.feishuWebhook;
+    if (data.feishuAppId !== undefined) config.feishuConfig.appId = data.feishuAppId;
+    if (data.feishuAppSecret !== undefined) config.feishuConfig.appSecret = data.feishuAppSecret;
+    if (data.feishuTableUrl !== undefined) config.feishuConfig.tableUrl = data.feishuTableUrl;
+  }
+  
+  // 更新LLM配置
+  if (data.llmApiKey !== undefined || data.llmApiEndpoint !== undefined || data.llmModel !== undefined) {
+    config.llmConfig = config.llmConfig || {};
+    if (data.llmApiKey !== undefined) config.llmConfig.apiKey = data.llmApiKey;
+    if (data.llmApiEndpoint !== undefined) config.llmConfig.baseURL = data.llmApiEndpoint;
+    if (data.llmModel !== undefined) config.llmConfig.model = data.llmModel;
+  }
+  
+  // 更新图片配置
+  if (data.unsplashApiKey !== undefined || data.imageUseAI !== undefined || data.imageApiKey !== undefined || data.enableImageDeduplication !== undefined || data.deduplicationWindow !== undefined) {
+    config.imageConfig = config.imageConfig || {};
+    if (data.unsplashApiKey !== undefined) config.imageConfig.unsplashApiKey = data.unsplashApiKey;
+    if (data.imageUseAI !== undefined) config.imageConfig.useAI = data.imageUseAI;
+    if (data.imageApiKey !== undefined) config.imageConfig.aiApiKey = data.imageApiKey;
+    if (data.enableImageDeduplication !== undefined) config.imageConfig.enableDeduplication = data.enableImageDeduplication;
+    if (data.deduplicationWindow !== undefined) config.imageConfig.deduplicationWindow = data.deduplicationWindow;
+  }
+  
+  // 更新SEO配置
+  if (data.autoPostEnabled !== undefined || data.autoPostTime !== undefined || data.autoPostInterval !== undefined || data.postsPerDay !== undefined || data.aiArticleCount !== undefined || data.rewriteArticleCount !== undefined || data.enableSearchRewrite !== undefined || data.rewriteRounds !== undefined || data.seoKeywords !== undefined) {
+    config.seoConfig = config.seoConfig || {};
+    if (data.autoPostEnabled !== undefined) config.seoConfig.autoPublish = data.autoPostEnabled;
+    if (data.autoPostTime !== undefined) config.seoConfig.publishTime = data.autoPostTime;
+    if (data.autoPostInterval !== undefined) config.seoConfig.publishInterval = data.autoPostInterval;
+    if (data.postsPerDay !== undefined) config.seoConfig.postsPerDay = data.postsPerDay;
+    if (data.aiArticleCount !== undefined) config.seoConfig.aiArticleCount = data.aiArticleCount;
+    if (data.rewriteArticleCount !== undefined) config.seoConfig.rewriteArticleCount = data.rewriteArticleCount;
+    if (data.enableSearchRewrite !== undefined) config.seoConfig.enableSearchRewrite = data.enableSearchRewrite;
+    if (data.rewriteRounds !== undefined) config.seoConfig.rewriteRounds = data.rewriteRounds;
+    if (data.seoKeywords !== undefined) config.seoConfig.keywords = data.seoKeywords;
+  }
   
   await saveConfig(config);
   res.json({ success: true });
@@ -406,6 +481,145 @@ app.post('/api/admin/change-password', async (req, res) => {
   
   await saveConfig(config);
   res.json({ success: true, message: '密码修改成功' });
+});
+
+// 获取管理员列表
+app.get('/api/admin/admins', async (req, res) => {
+  try {
+    const config = await getConfig();
+    const admins = config.admins || [];
+    
+    // 返回管理员信息（隐藏密码）
+    const sanitizedAdmins = admins.map(admin => ({
+      email: admin.email,
+      name: admin.name,
+      role: admin.role,
+      createdAt: admin.createdAt,
+      needsPasswordChange: admin.needsPasswordChange
+    }));
+    
+    res.json({ success: true, admins: sanitizedAdmins });
+  } catch (error) {
+    res.status(500).json({ success: false, message: '获取管理员列表失败' });
+  }
+});
+
+// 邀请新管理员
+app.post('/api/admin/invite', async (req, res) => {
+  try {
+    const { email, name } = req.body;
+    
+    if (!email || !name) {
+      return res.status(400).json({ success: false, message: '邮箱和姓名不能为空' });
+    }
+    
+    const config = await getConfig();
+    const admins = config.admins || [];
+    
+    // 检查是否已存在
+    if (admins.find(a => a.email === email)) {
+      return res.status(400).json({ success: false, message: '该邮箱已被注册为管理员' });
+    }
+    
+    // 生成临时密码（8位随机字符）
+    const tempPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8).toUpperCase();
+    
+    // 添加新管理员
+    admins.push({
+      email,
+      name,
+      password: tempPassword,
+      role: 'admin',
+      createdAt: new Date().toISOString(),
+      needsPasswordChange: true
+    });
+    
+    config.admins = admins;
+    await saveConfig(config);
+    
+    // 发送邀请邮件
+    const emailConfig = config.emailConfig;
+    const brandConfig = config.brandConfig;
+    
+    if (!emailConfig || !emailConfig.user || !emailConfig.pass) {
+      return res.status(500).json({ success: false, message: '邮件配置未完成，无法发送邀请邮件' });
+    }
+    
+    const nodemailer = require('nodemailer');
+    const transporter = nodemailer.createTransporter({
+      host: emailConfig.host,
+      port: emailConfig.port,
+      secure: emailConfig.secure !== false,
+      auth: {
+        user: emailConfig.user,
+        pass: emailConfig.pass
+      }
+    });
+    
+    const websiteUrl = brandConfig?.websiteUrl || 'https://your-domain.com';
+    const brandName = brandConfig?.name || '管理后台';
+    const loginUrl = `${websiteUrl}/backend/login.html`;
+    
+    await transporter.sendMail({
+      from: emailConfig.from,
+      to: email,
+      subject: `${brandConfig?.emailSubjectPrefix || ''}${brandName} - 管理员邀请`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #7c3aed;">欢迎加入 ${brandName}</h2>
+          <p>你好 ${name}，</p>
+          <p>你已被邀请成为 <strong>${brandName}</strong> 的管理员。</p>
+          <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <p style="margin: 5px 0;"><strong>登录信息：</strong></p>
+            <p style="margin: 5px 0;">邮箱：<code style="background: #e5e7eb; padding: 2px 6px; border-radius: 4px;">${email}</code></p>
+            <p style="margin: 5px 0;">临时密码：<code style="background: #e5e7eb; padding: 2px 6px; border-radius: 4px;">${tempPassword}</code></p>
+          </div>
+          <p>请点击下方按钮登录管理后台：</p>
+          <a href="${loginUrl}" style="display: inline-block; background: #7c3aed; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 10px 0;">登录管理后台</a>
+          <p style="color: #ef4444; font-size: 14px;">⚠️ <strong>重要：</strong>首次登录后请立即修改密码！</p>
+          <p style="color: #6b7280; font-size: 12px; margin-top: 30px;">如果按钮无法点击，请复制以下链接到浏览器：<br>${loginUrl}</p>
+        </div>
+      `
+    });
+    
+    res.json({ success: true, message: '邀请邮件已发送' });
+  } catch (error) {
+    console.error('邀请管理员失败:', error);
+    res.status(500).json({ success: false, message: '邀请失败: ' + error.message });
+  }
+});
+
+// 删除管理员
+app.post('/api/admin/remove', async (req, res) => {
+  try {
+    const { email } = req.body;
+    
+    if (!email) {
+      return res.status(400).json({ success: false, message: '邮箱不能为空' });
+    }
+    
+    const config = await getConfig();
+    const admins = config.admins || [];
+    
+    // 不允许删除第一个管理员（主管理员）
+    if (admins.length > 0 && admins[0].email === email) {
+      return res.status(403).json({ success: false, message: '不能删除主管理员' });
+    }
+    
+    const newAdmins = admins.filter(a => a.email !== email);
+    
+    if (newAdmins.length === admins.length) {
+      return res.status(404).json({ success: false, message: '管理员不存在' });
+    }
+    
+    config.admins = newAdmins;
+    await saveConfig(config);
+    
+    res.json({ success: true, message: '管理员已删除' });
+  } catch (error) {
+    console.error('删除管理员失败:', error);
+    res.status(500).json({ success: false, message: '删除失败: ' + error.message });
+  }
 });
 
 // 测试LLM API配置
@@ -1371,15 +1585,10 @@ app.post('/api/admin/accept-invite', async (req, res) => {
 // ==================== 配置管理API ====================
 
 // 获取配置
-app.get('/api/admin/config', verifyToken, (req, res) => {
-  res.json({
-    success: true,
-    config: config
-  });
-});
+// Removed duplicate endpoint - using the one at line 341 instead
 
 // 更新配置
-app.post('/api/admin/config', verifyToken, (req, res) => {
+app.post('/api/admin/config', (req, res) => {
   try {
     const updates = req.body;
     
