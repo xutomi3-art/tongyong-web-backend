@@ -1014,7 +1014,7 @@ app.post('/api/admin/test-smtp', verifyToken, async (req, res) => {
     const config = await getConfig();
     
     // 检查SMTP是否配置
-    if (!config.emailConfig || !config.emailConfig.host || !config.emailConfig.user || !config.emailConfig.password) {
+    if (!config.emailConfig || !config.emailConfig.host || !config.emailConfig.user || !config.emailConfig.pass) {
       return res.status(400).json({ 
         success: false, 
         error: 'SMTP未配置，请先配置SMTP信息' 
