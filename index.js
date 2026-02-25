@@ -497,7 +497,7 @@ app.post('/api/admin/config', verifyToken, async (req, res) => {
 });
 
 // 修改密码
-app.post('/api/admin/change-password', verifyToken', async (req, res) => {
+app.post('/api/admin/change-password', verifyToken, async (req, res) => {
   const { email, oldPassword, newPassword } = req.body;
   const config = await getConfig();
   
@@ -521,7 +521,7 @@ app.post('/api/admin/change-password', verifyToken', async (req, res) => {
 });
 
 // 获取管理员列表
-app.get('/api/admin/admins', verifyToken', async (req, res) => {
+app.get('/api/admin/admins', verifyToken, async (req, res) => {
   try {
     const config = await getConfig();
     const admins = config.admins || [];
@@ -542,7 +542,7 @@ app.get('/api/admin/admins', verifyToken', async (req, res) => {
 });
 
 // 邀请新管理员
-app.post('/api/admin/invite', verifyToken', async (req, res) => {
+app.post('/api/admin/invite', verifyToken, async (req, res) => {
   try {
     const { email, name } = req.body;
     
@@ -627,7 +627,7 @@ app.post('/api/admin/invite', verifyToken', async (req, res) => {
 });
 
 // 删除管理员
-app.post('/api/admin/remove', verifyToken', async (req, res) => {
+app.post('/api/admin/remove', verifyToken, async (req, res) => {
   try {
     const { email } = req.body;
     
@@ -660,26 +660,26 @@ app.post('/api/admin/remove', verifyToken', async (req, res) => {
 });
 
 // 测试LLM API配置
-app.post('/api/admin/test-llm', verifyToken', async (req, res) => {
+app.post('/api/admin/test-llm', verifyToken, async (req, res) => {
   const { apiKey, apiEndpoint, model } = req.body;
   const result = await testLLMConfig({ apiKey, apiEndpoint, model });
   res.json(result);
 });
 
 // 获取文章列表
-app.get('/api/admin/articles', verifyToken', async (req, res) => {
+app.get('/api/admin/articles', verifyToken, async (req, res) => {
   const articles = await getArticles();
   res.json(articles);
 });
 
 // 获取留言列表
-app.get('/api/admin/contacts', verifyToken', async (req, res) => {
+app.get('/api/admin/contacts', verifyToken, async (req, res) => {
   const contacts = await getContacts();
   res.json(contacts);
 });
 
 // 生成文章
-app.post('/api/admin/generate-article', verifyToken', async (req, res) => {
+app.post('/api/admin/generate-article', verifyToken, async (req, res) => {
   try {
     const config = await getConfig();
     
@@ -901,7 +901,7 @@ async function scheduleArticleGeneration() {
 cron.schedule('0 2 * * *', scheduleArticleGeneration);
 
 // SSL证书管理API
-app.post('/api/admin/renew-certificate', verifyToken', async (req, res) => {
+app.post('/api/admin/renew-certificate', verifyToken, async (req, res) => {
   try {
     const result = await renewCertificate();
     res.json(result);
@@ -910,7 +910,7 @@ app.post('/api/admin/renew-certificate', verifyToken', async (req, res) => {
   }
 });
 
-app.get('/api/admin/certificate-info', verifyToken', async (req, res) => {
+app.get('/api/admin/certificate-info', verifyToken, async (req, res) => {
   try {
     const result = await getCertificateInfo();
     res.json(result);
@@ -920,7 +920,7 @@ app.get('/api/admin/certificate-info', verifyToken', async (req, res) => {
 });
 
 // 测试邮件发送API
-app.post('/api/admin/test-email', verifyToken', async (req, res) => {
+app.post('/api/admin/test-email', verifyToken, async (req, res) => {
   try {
     const { testEmail } = req.body;
     
@@ -1009,7 +1009,7 @@ app.post('/api/admin/test-email', verifyToken', async (req, res) => {
 });
 
 // 测试飞书机器人
-app.post('/api/admin/test-feishu-bot', verifyToken', async (req, res) => {
+app.post('/api/admin/test-feishu-bot', verifyToken, async (req, res) => {
   try {
     const config = await getConfig();
     
@@ -1053,7 +1053,7 @@ app.post('/api/admin/test-feishu-bot', verifyToken', async (req, res) => {
 });
 
 // 测试飞书表格同步
-app.post('/api/admin/test-feishu-table', verifyToken', async (req, res) => {
+app.post('/api/admin/test-feishu-table', verifyToken, async (req, res) => {
   try {
     const config = await getConfig();
     
@@ -1116,7 +1116,7 @@ app.get('/api/admin/used-urls', verifyToken/count', async (req, res) => {
 });
 
 // 获取所有已使用URL
-app.get('/api/admin/used-urls', verifyToken', async (req, res) => {
+app.get('/api/admin/used-urls', verifyToken, async (req, res) => {
   try {
     const urls = await usedUrlsManager.getUsedUrls();
     res.json({ success: true, urls });
@@ -1136,7 +1136,7 @@ app.post('/api/admin/used-urls', verifyToken/clear', async (req, res) => {
 });
 
 // 测试Unsplash API
-app.post('/api/admin/test-unsplash', verifyToken', async (req, res) => {
+app.post('/api/admin/test-unsplash', verifyToken, async (req, res) => {
   try {
     const { apiKey } = req.body;
     if (!apiKey) {
@@ -1298,7 +1298,7 @@ app.post('/api/admin/login-with-otp', async (req, res) => {
 
 
 // 获取所有管理员列表
-app.get('/api/admin/admins', verifyToken', async (req, res) => {
+app.get('/api/admin/admins', verifyToken, async (req, res) => {
   try {
     const config = await getConfig();
     const admins = config.admins || [];
@@ -1320,7 +1320,7 @@ app.get('/api/admin/admins', verifyToken', async (req, res) => {
 });
 
 // 添加管理员
-app.post('/api/admin/admins', verifyToken', async (req, res) => {
+app.post('/api/admin/admins', verifyToken, async (req, res) => {
   try {
     const { email, name, password } = req.body;
     
@@ -1425,7 +1425,7 @@ app.delete('/api/admin/admins', verifyToken/:email', async (req, res) => {
 const invitationTokens = new Map();
 
 // 发送管理员邀请
-app.post('/api/admin/invite', verifyToken', async (req, res) => {
+app.post('/api/admin/invite', verifyToken, async (req, res) => {
   try {
     const { email, name } = req.body;
     
