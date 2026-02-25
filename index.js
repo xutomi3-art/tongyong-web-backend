@@ -711,7 +711,7 @@ app.post('/api/admin/generate-article', verifyToken, async (req, res) => {
 });
 
 // 删除文章
-app.delete('/api/admin/articles', verifyToken/:id', async (req, res) => {
+app.delete('/api/admin/articles/:id', verifyToken, async (req, res) => {
   const { id } = req.params;
   let articles = await getArticles();
   articles = articles.filter(a => a.id !== id);
@@ -1106,7 +1106,7 @@ app.post('/api/admin/test-feishu-table', verifyToken, async (req, res) => {
 const usedUrlsManager = require('./used-urls-manager');
 
 // 获取已使用URL数量
-app.get('/api/admin/used-urls', verifyToken/count', async (req, res) => {
+app.get('/api/admin/used-urls/count', verifyToken, async (req, res) => {
   try {
     const count = await usedUrlsManager.getUsedUrlCount();
     res.json({ success: true, count });
@@ -1126,7 +1126,7 @@ app.get('/api/admin/used-urls', verifyToken, async (req, res) => {
 });
 
 // 清空已使用URL
-app.post('/api/admin/used-urls', verifyToken/clear', async (req, res) => {
+app.post('/api/admin/used-urls/clear', verifyToken, async (req, res) => {
   try {
     await usedUrlsManager.clearUsedUrls();
     res.json({ success: true, message: '已成功清空历史URL' });
@@ -1357,7 +1357,7 @@ app.post('/api/admin/admins', verifyToken, async (req, res) => {
 });
 
 // 更新管理员信息
-app.put('/api/admin/admins', verifyToken/:email', async (req, res) => {
+app.put('/api/admin/admins/:email', verifyToken, async (req, res) => {
   try {
     const { email } = req.params;
     const { name, password } = req.body;
@@ -1390,7 +1390,7 @@ app.put('/api/admin/admins', verifyToken/:email', async (req, res) => {
 });
 
 // 删除管理员
-app.delete('/api/admin/admins', verifyToken/:email', async (req, res) => {
+app.delete('/api/admin/admins/:email', verifyToken, async (req, res) => {
   try {
     const { email } = req.params;
     
