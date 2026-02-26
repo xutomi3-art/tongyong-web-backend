@@ -87,10 +87,10 @@
 - 🚀 **[AI部署指南](./AI_DEPLOYMENT_GUIDE.md)** - **（AI助手必读）** 部署、配置和品牌化的详细步骤。
 - 📖 **[数据初始化指南](./DATA_SETUP.md)** - 首次部署后如何初始化配置和数据。
 - 🎨 **[品牌定制指南](./BRANDING.md)** - 如何定制品牌信息、Logo和邮件模板。
+- 📝 **[API文档](./docs/API.md)** - 完整的API接口说明和TypeScript类型定义。
+- 🛠️ **[客户端SDK](./docs/client-sdk.ts)** - 类型安全的API调用封装。
 
 **功能与部署**
-
-- 📝 **[API文档](./API.md)** - 完整的API接口说明。
 - ⬆️ **[部署指南](./DEPLOYMENT.md)** - 详细的生产环境部署步骤。
 - 🐛 **[部署问题修复记录](./DEPLOYMENT_ISSUES_FIXED.md)** - **（重要）** 实际部署中发现并修复的问题。
 - 🖼️ **[前端署名指南](./FRONTEND_ATTRIBUTION.md)** - **（重要）** 前端网站如何显示Unsplash署名。

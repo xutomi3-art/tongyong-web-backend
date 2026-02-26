@@ -446,7 +446,10 @@ app.post('/api/admin/config', verifyToken, async (req, res) => {
   // 更新邮件配置
   if (data.email !== undefined || data.smtpHost !== undefined || data.smtpPort !== undefined || data.smtpUser !== undefined || data.smtpPassword !== undefined || data.smtpFrom !== undefined) {
     config.emailConfig = config.emailConfig || {};
-    if (data.email !== undefined) config.emailConfig.adminEmail = data.email;
+    if (data.email !== undefined) {
+      config.emailConfig.adminEmail = data.email;
+      config.email = data.email;  // 同时保存到根级别，供邮件发送使用
+    }
     if (data.smtpHost !== undefined) config.emailConfig.host = data.smtpHost;
     if (data.smtpPort !== undefined) config.emailConfig.port = data.smtpPort;
     if (data.smtpUser !== undefined) config.emailConfig.user = data.smtpUser;
@@ -455,13 +458,10 @@ app.post('/api/admin/config', verifyToken, async (req, res) => {
   }
   
   // 更新飞书配置
-  if (data.feishuWebhook !== undefined || data.feishuAppId !== undefined || data.feishuAppSecret !== undefined || data.feishuTableUrl !== undefined) {
-    config.feishuConfig = config.feishuConfig || {};
-    if (data.feishuWebhook !== undefined) config.feishuConfig.webhookUrl = data.feishuWebhook;
-    if (data.feishuAppId !== undefined) config.feishuConfig.appId = data.feishuAppId;
-    if (data.feishuAppSecret !== undefined) config.feishuConfig.appSecret = data.feishuAppSecret;
-    if (data.feishuTableUrl !== undefined) config.feishuConfig.tableUrl = data.feishuTableUrl;
-  }
+  if (data.feishuWebhook !== undefined) config.feishuWebhook = data.feishuWebhook;
+  if (data.feishuAppId !== undefined) config.feishuAppId = data.feishuAppId;
+  if (data.feishuAppSecret !== undefined) config.feishuAppSecret = data.feishuAppSecret;
+  if (data.feishuTableUrl !== undefined) config.feishuTableUrl = data.feishuTableUrl;
   
   // 更新LLM配置
   if (data.llmApiKey !== undefined || data.llmApiEndpoint !== undefined || data.llmModel !== undefined) {
@@ -736,10 +736,13 @@ app.get('/api/articles', async (req, res) => {
 // 提交联系表单
 app.post('/api/contact', async (req, res) => {
   try {
-    const { captchaId, captchaText, ...contactData } = req.body;
+    const { captchaId, captchaText, captcha, ...contactData } = req.body;
+    
+    // 兼容两种字段名：captchaText（新）和 captcha（旧）
+    const userCaptcha = captchaText || captcha;
     
     // 验证验证码（强制要求）
-    if (!captchaId || !captchaText) {
+    if (!captchaId || !userCaptcha) {
       return res.status(400).json({ success: false, error: '请输入验证码' });
     }
     
@@ -747,7 +750,7 @@ app.post('/api/contact', async (req, res) => {
     if (!stored || stored.expires < Date.now()) {
       return res.status(400).json({ success: false, error: '验证码错误或已过期' });
     }
-    if (stored.text !== captchaText.toLowerCase()) {
+    if (stored.text !== userCaptcha.toLowerCase()) {
       return res.status(400).json({ success: false, error: '验证码错误或已过期' });
     }
     // 验证成功后删除验证码
@@ -1175,12 +1178,7 @@ app.post('/api/admin/test-feishu-table', verifyToken, async (req, res) => {
       timestamp: new Date().toISOString()
     };
     
-    const success = await syncToFeishuTable(
-      config.feishuAppId,
-      config.feishuAppSecret,
-      config.feishuTableUrl,
-      testData
-    );
+    const success = await syncToFeishuTable(config, testData);
     
     if (success) {
       res.json({ 
