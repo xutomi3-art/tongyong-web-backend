@@ -1,20 +1,49 @@
 {
+  "brandName": "您的品牌名称",
+  "brandDescription": "您的产品描述",
+  "adminTitle": "管理后台",
+  "email": "",
+  "autoPostEnabled": false,
+  "postsPerDay": 5,
+  "autoPostTime": "09:00",
+  "autoPostCount": 1,
+  "autoPostInterval": 24,
+  "enableSearchRewrite": false,
+  "rewriteRounds": 3,
+  "seoKeywords": "AI阅卷,智能阅卷,自动阅卷,在线阅卷系统,AI批改作业,智能批改,教育AI,智能教育,阅卷系统,考试阅卷,作业批改系统,教学评估,智能评分,OCR识别,手写识别,教育数字化",
+  "adminUsername": "admin",
+  "adminPassword": "admin123",
+  "llmApiKey": "",
+  "llmApiEndpoint": "",
+  "llmModel": "",
+  "imageUseAI": false,
+  "imageApiKey": "",
+  "unsplashApiKey": "",
+  "smtpHost": "",
+  "smtpPort": 587,
+  "smtpUser": "",
+  "smtpPassword": "",
+  "smtpFrom": "",
+  "feishuWebhook": "",
+  "feishuTableUrl": "",
+  "feishuAppId": "",
+  "feishuAppSecret": "",
   "brandConfig": {
-    "name": "您的品牌名称",
-    "description": "您的产品描述",
-    "adminTitle": "管理后台",
-    "emailSubjectPrefix": "[您的品牌] ",
-    "websiteUrl": "https://example.com"
+    "name": "JOTO AI",
+    "description": "AI全科阅卷系统",
+    "adminTitle": "闪阅管理后台",
+    "emailSubjectPrefix": "[JOTO AI] ",
+    "websiteUrl": "https://shanyue.jotoai.com"
   },
   "emailConfig": {
-    "service": "qq",
-    "host": "smtp.qq.com",
+    "service": "",
+    "host": "",
     "port": 465,
     "secure": true,
-    "user": "your-email@qq.com",
-    "pass": "your-smtp-authorization-code",
-    "from": "your-email@qq.com",
-    "adminEmail": "admin@example.com"
+    "user": "",
+    "pass": "",
+    "from": "",
+    "adminEmail": ""
   },
   "feishuConfig": {
     "webhookUrl": "",
@@ -23,10 +52,10 @@
     "tableUrl": ""
   },
   "llmConfig": {
-    "provider": "openai",
-    "apiKey": "your-openai-api-key",
-    "baseURL": "https://api.openai.com/v1",
-    "model": "gpt-4"
+    "provider": "",
+    "apiKey": "",
+    "baseURL": "",
+    "model": ""
   },
   "imageConfig": {
     "unsplashApiKey": "",
@@ -36,24 +65,29 @@
     "deduplicationWindow": 5
   },
   "seoConfig": {
-    "autoPublish": false,
+    "autoPublish": true,
     "publishInterval": 24,
     "publishTime": "09:00",
-    "postsPerDay": 1,
-    "aiArticleCount": 1,
-    "rewriteArticleCount": 0,
-    "enableSearchRewrite": false,
-    "rewriteRounds": 1,
-    "keywords": "您的SEO关键词1,您的SEO关键词2,您的SEO关键词3"
+    "postsPerDay": 5,
+    "aiArticleCount": 2,
+    "rewriteArticleCount": 2,
+    "enableSearchRewrite": true,
+    "rewriteRounds": 3,
+    "keywords": "AI阅卷,智能阅卷,自动阅卷,在线阅卷系统,AI批改作业,智能批改,教育AI,智能教育,阅卷系统,考试阅卷,作业批改系统,教学评估,智能评分,OCR识别,手写识别"
   },
   "admins": [
     {
-      "email": "test@abc.com",
-      "password": "Test123",
+      "email": "admin@example.com",
+      "password": "changeme",
       "name": "管理员",
       "role": "admin",
-      "createdAt": "2026-01-01T00:00:00.000Z",
+      "createdAt": "2026-02-25T00:00:00.000Z",
       "needsPasswordChange": true
     }
-  ]
+  ],
+  "utmConfig": {
+    "defaultSource": "baidu",
+    "defaultMedium": "cpc",
+    "trackingEnabled": true
+  }
 }
