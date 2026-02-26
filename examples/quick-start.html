@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>前端对接快速示例</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      padding: 32px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    }
+    
+    h1 {
+      color: #333;
+      margin-bottom: 8px;
+    }
+    
+    .subtitle {
+      color: #666;
+      margin-bottom: 32px;
+    }
+    
+    .section {
+      margin-bottom: 32px;
+    }
+    
+    .section h2 {
+      color: #444;
+      font-size: 18px;
+      margin-bottom: 16px;
+    }
+    
+    .form-group {
+      margin-bottom: 16px;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 8px;
+      color: #555;
+      font-weight: 500;
+    }
+    
+    input, textarea {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: border-color 0.3s;
+    }
+    
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    
+    textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+    
+    .captcha-container {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+    
+    .captcha-image {
+      flex-shrink: 0;
+      cursor: pointer;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 4px;
+      background: white;
+    }
+    
+    .captcha-input {
+      flex: 1;
+    }
+    
+    button {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    }
+    
+    button:active {
+      transform: translateY(0);
+    }
+    
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .message {
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-top: 16px;
+      font-size: 14px;
+    }
+    
+    .message.success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    
+    .message.error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    
+    .code-block {
+      background: #f5f5f5;
+      padding: 16px;
+      border-radius: 8px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      overflow-x: auto;
+      margin-top: 8px;
+    }
+    
+    .info-box {
+      background: #e7f3ff;
+      border-left: 4px solid #2196F3;
+      padding: 16px;
+      border-radius: 4px;
+      margin-bottom: 24px;
+    }
+    
+    .info-box p {
+      margin: 8px 0;
+      color: #0d47a1;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🚀 前端对接快速示例</h1>
+    <p class="subtitle">通用Web后端API调用演示</p>
+    
+    <div class="info-box">
+      <p><strong>📝 说明:</strong></p>
+      <p>这是一个纯HTML+JavaScript的示例，展示如何调用后端API。</p>
+      <p>请确保后端服务已启动在 <code>http://localhost:3001</code></p>
+    </div>
+    
+    <div class="section">
+      <h2>📮 联系表单示例</h2>
+      <form id="contactForm">
+        <div class="form-group">
+          <label for="name">姓名 *</label>
+          <input type="text" id="name" required placeholder="请输入您的姓名">
+        </div>
+        
+        <div class="form-group">
+          <label for="company">公司/机构</label>
+          <input type="text" id="company" placeholder="请输入公司或机构名称">
+        </div>
+        
+        <div class="form-group">
+          <label for="phone">电话 *</label>
+          <input type="tel" id="phone" required placeholder="请输入联系电话">
+        </div>
+        
+        <div class="form-group">
+          <label for="email">邮箱 *</label>
+          <input type="email" id="email" required placeholder="请输入电子邮箱">
+        </div>
+        
+        <div class="form-group">
+          <label for="message">留言 *</label>
+          <textarea id="message" required placeholder="请输入您的留言内容"></textarea>
+        </div>
+        
+        <div class="form-group">
+          <label>验证码 *</label>
+          <div class="captcha-container">
+            <div id="captchaImage" class="captcha-image" title="点击刷新验证码">
+              <p style="padding: 20px; color: #999;">加载中...</p>
+            </div>
+            <input type="text" id="captcha" class="captcha-input" required placeholder="请输入验证码" maxlength="4">
+          </div>
+        </div>
+        
+        <button type="submit" id="submitBtn">提交表单</button>
+      </form>
+      
+      <div id="message"></div>
+    </div>
+    
+    <div class="section">
+      <h2>💻 代码示例</h2>
+      <div class="code-block" id="codeExample">
+// 查看浏览器控制台以获取完整的API调用代码
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = 'http://localhost:3001/api';
+    let captchaId = null;
+
+    // 加载验证码
+    async function loadCaptcha() {
+      try {
+        const response = await fetch(`${API_BASE}/captcha`);
+        const data = await response.json();
+        
+        captchaId = data.id;
+        document.getElementById('captchaImage').innerHTML = data.svg;
+        
+        console.log('✅ 验证码加载成功');
+        console.log('API调用示例:');
+        console.log(`
+fetch('${API_BASE}/captcha')
+  .then(res => res.json())
+  .then(data => {
+    console.log('验证码ID:', data.id);
+    // 显示验证码SVG图片
+    element.innerHTML = data.svg;
+  });
+        `);
+      } catch (error) {
+        console.error('❌ 验证码加载失败:', error);
+        showMessage('验证码加载失败，请检查后端服务是否启动', 'error');
+      }
+    }
+
+    // 点击验证码刷新
+    document.getElementById('captchaImage').addEventListener('click', loadCaptcha);
+
+    // 提交表单
+    document.getElementById('contactForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const submitBtn = document.getElementById('submitBtn');
+      submitBtn.disabled = true;
+      submitBtn.textContent = '提交中...';
+      
+      const formData = {
+        name: document.getElementById('name').value,
+        company: document.getElementById('company').value,
+        phone: document.getElementById('phone').value,
+        email: document.getElementById('email').value,
+        message: document.getElementById('message').value,
+        captchaId: captchaId,
+        captcha: document.getElementById('captcha').value  // 支持 captcha 或 captchaText
+      };
+      
+      console.log('📤 提交表单数据:', formData);
+      console.log('API调用示例:');
+      console.log(`
+fetch('${API_BASE}/contact', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify(${JSON.stringify(formData, null, 2)})
+})
+  .then(res => res.json())
+  .then(data => {
+    if (data.success) {
+      console.log('✅ 提交成功');
+    } else {
+      console.error('❌ 提交失败:', data.error);
+    }
+  });
+      `);
+      
+      try {
+        const response = await fetch(`${API_BASE}/contact`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(formData)
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          showMessage('✅ 表单提交成功！感谢您的留言。', 'success');
+          document.getElementById('contactForm').reset();
+          loadCaptcha();
+          console.log('✅ 表单提交成功');
+        } else {
+          showMessage(`❌ ${data.error}`, 'error');
+          console.error('❌ 表单提交失败:', data.error);
+          loadCaptcha();
+        }
+      } catch (error) {
+        showMessage('❌ 网络错误，请稍后重试', 'error');
+        console.error('❌ 网络错误:', error);
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = '提交表单';
+      }
+    });
+
+    // 显示消息
+    function showMessage(text, type) {
+      const messageEl = document.getElementById('message');
+      messageEl.textContent = text;
+      messageEl.className = `message ${type}`;
+      
+      setTimeout(() => {
+        messageEl.textContent = '';
+        messageEl.className = '';
+      }, 5000);
+    }
+
+    // 页面加载时获取验证码
+    loadCaptcha();
+
+    // 更新代码示例
+    document.getElementById('codeExample').textContent = `
+// 1. 获取验证码
+const captchaResponse = await fetch('${API_BASE}/captcha');
+const captcha = await captchaResponse.json();
+
+// 2. 提交联系表单
+const response = await fetch('${API_BASE}/contact', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    name: '张三',
+    phone: '13800138000',
+    email: 'test@example.com',
+    message: '测试留言',
+    captchaId: captcha.id,
+    captcha: '用户输入的验证码'
+  })
+});
+
+const result = await response.json();
+console.log(result);
+    `.trim();
+
+    console.log('🎉 示例页面已加载');
+    console.log('📚 完整文档请查看: docs/FRONTEND_GUIDE.md');
+  </script>
+</body>
+</html>
