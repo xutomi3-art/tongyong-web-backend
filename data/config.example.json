@@ -10,7 +10,7 @@
   "autoPostInterval": 24,
   "enableSearchRewrite": false,
   "rewriteRounds": 3,
-  "seoKeywords": "AI阅卷,智能阅卷,自动阅卷,在线阅卷系统,AI批改作业,智能批改,教育AI,智能教育,阅卷系统,考试阅卷,作业批改系统,教学评估,智能评分,OCR识别,手写识别,教育数字化",
+  "seoKeywords": "",
   "adminUsername": "admin",
   "adminPassword": "admin123",
   "llmApiKey": "",
@@ -29,11 +29,11 @@
   "feishuAppId": "",
   "feishuAppSecret": "",
   "brandConfig": {
-    "name": "JOTO AI",
-    "description": "AI全科阅卷系统",
-    "adminTitle": "闪阅管理后台",
-    "emailSubjectPrefix": "[JOTO AI] ",
-    "websiteUrl": "https://shanyue.jotoai.com"
+    "name": "您的品牌名称",
+    "description": "您的产品描述",
+    "adminTitle": "管理后台",
+    "emailSubjectPrefix": "[您的品牌] ",
+    "websiteUrl": "https://your-domain.com"
   },
   "emailConfig": {
     "service": "",
@@ -65,15 +65,15 @@
     "deduplicationWindow": 5
   },
   "seoConfig": {
-    "autoPublish": true,
+    "autoPublish": false,
     "publishInterval": 24,
     "publishTime": "09:00",
     "postsPerDay": 5,
     "aiArticleCount": 2,
     "rewriteArticleCount": 2,
-    "enableSearchRewrite": true,
+    "enableSearchRewrite": false,
     "rewriteRounds": 3,
-    "keywords": "AI阅卷,智能阅卷,自动阅卷,在线阅卷系统,AI批改作业,智能批改,教育AI,智能教育,阅卷系统,考试阅卷,作业批改系统,教学评估,智能评分,OCR识别,手写识别"
+    "keywords": ""
   },
   "admins": [
     {
