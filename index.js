@@ -865,7 +865,8 @@ app.post('/api/contact', async (req, res) => {
       await syncToFeishuTable(config, {
         ...contactData,
         school: contactData.school || contactData.company || '-',
-        source: sourceInfo
+        source: sourceInfo,
+        deviceType: deviceType
       });
     }
     
