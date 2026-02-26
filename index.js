@@ -733,6 +733,24 @@ app.get('/api/articles', async (req, res) => {
   res.json(published);
 });
 
+// 设备类型检测函数
+function detectDevice(userAgent) {
+  if (!userAgent) return '未知';
+  
+  const ua = userAgent.toLowerCase();
+  
+  // 检测移动设备
+  if (/(android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini)/i.test(ua)) {
+    if (/(ipad|tablet|playbook|silk)/i.test(ua)) {
+      return '平板';
+    }
+    return '手机';
+  }
+  
+  // 默认为电脑
+  return '电脑';
+}
+
 // 提交联系表单
 app.post('/api/contact', async (req, res) => {
   try {
@@ -757,6 +775,10 @@ app.post('/api/contact', async (req, res) => {
     captchaStore.delete(captchaId);
     
     const config = await getConfig();
+    
+    // 检测设备类型
+    const userAgent = req.headers['user-agent'];
+    const deviceType = detectDevice(userAgent);
     
     // 构造来源信息（支持UTM参数）
     let sourceInfo = '直接访问';
@@ -804,6 +826,7 @@ app.post('/api/contact', async (req, res) => {
       source: sourceInfo,
       trafficType: trafficType,
       utmData: utmData,
+      deviceType: deviceType,
       id: Date.now().toString(),
       submittedAt: new Date().toISOString()
     });
@@ -820,6 +843,7 @@ app.post('/api/contact', async (req, res) => {
         <p><strong>留言：</strong>${contactData.message || '无'}</p>
         <hr>
         <p><strong>访问来源：</strong>${sourceInfo}</p>
+        <p><strong>客户端类型：</strong>${deviceType}</p>
         <p><strong>提交时间：</strong>${new Date().toLocaleString('zh-CN')}</p>
       `;
       

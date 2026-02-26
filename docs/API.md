@@ -48,6 +48,9 @@
 | `captchaId` | `string` | 是 | 验证码ID（从 `GET /api/captcha` 获取） |
 | `captchaText` | `string` | 是 | 用户输入的验证码文本（**推荐**） |
 | `captcha` | `string` | 是 | 兼容旧版，功能同 `captchaText` |
+| `trafficSource` | `object` | 否 | UTM来源跟踪参数（可选） |
+
+**注意**: 后端会自动检测客户端类型（手机/平板/电脑）并保存到留言记录中。
 
 - **响应**: `200 OK`
 
