@@ -256,7 +256,7 @@ async function generateRewrittenArticle(llmConfig = null, imageConfig = null, re
   try {
     // 1. 搜索相关文章
     console.log('\n步骤1: 搜索相关文章...');
-    const articles = await searchAndFetchArticles(keyword);
+    const articles = await searchAndFetchArticles(keyword, dedupConfig || {});
     
     if (!articles || articles.length === 0) {
       console.log('未找到相关文章，回退到AI原创生成');

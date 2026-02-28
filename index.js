@@ -727,6 +727,62 @@ app.post('/api/admin/generate-article', verifyToken, async (req, res) => {
   }
 });
 
+// 生成搜索改写文章（手动触发）
+app.post('/api/admin/generate-rewrite-article', verifyToken, async (req, res) => {
+  try {
+    const config = await getConfig();
+    
+    // 准备LLM配置（优先使用嵌套的llmConfig）
+    const llmConfig = config.llmConfig?.apiKey ? {
+      apiKey: config.llmConfig.apiKey,
+      apiEndpoint: config.llmConfig.baseURL,
+      model: config.llmConfig.model
+    } : (config.llmApiKey && config.llmApiEndpoint ? {
+      apiKey: config.llmApiKey,
+      apiEndpoint: config.llmApiEndpoint,
+      model: config.llmModel
+    } : null);
+    
+    if (!llmConfig) {
+      return res.status(400).json({ success: false, error: '请先配置 LLM API' });
+    }
+    
+    // 准备图片配置
+    const imageConfig = {
+      useAI: config.imageConfig?.useAI ?? config.imageUseAI,
+      apiKey: config.imageConfig?.aiApiKey ?? config.imageApiKey,
+      unsplashApiKey: config.imageConfig?.unsplashApiKey ?? config.unsplashApiKey
+    };
+    
+    // 准备 Tavily 配置
+    const tavilyConfig = (config.tavilyConfig && config.tavilyConfig.apiKey)
+      ? config.tavilyConfig : null;
+    
+    const rewriteRounds = config.seoConfig?.rewriteRounds || config.rewriteRounds || 3;
+    
+    console.log('[改写文章] 开始生成，改写轮数:', rewriteRounds);
+    if (tavilyConfig) console.log('[改写文章] 使用 Tavily API 搜索');
+    
+    // 使用 generateRewrittenArticle（已包含搜索+改写+配图完整流程）
+    const { generateRewrittenArticle } = require('./article-generator');
+    const article = await generateRewrittenArticle(
+      llmConfig,
+      imageConfig,
+      rewriteRounds,
+      { tavilyConfig, googleApiKey: config.googleApiKey, googleSearchEngineId: config.googleSearchEngineId }
+    );
+    
+    const articles = await getArticles();
+    articles.unshift(article);
+    await saveArticles(articles);
+    
+    res.json({ success: true, article });
+  } catch (error) {
+    console.error('[改写文章] 失败:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // 删除文章
 app.delete('/api/admin/articles/:id', verifyToken, async (req, res) => {
   const { id } = req.params;

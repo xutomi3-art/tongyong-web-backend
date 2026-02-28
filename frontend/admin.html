@@ -817,7 +817,7 @@
         document.getElementById('unsplashApiKey').value = config.unsplashApiKey || '';
         document.getElementById('autoPostEnabled').checked = config.autoPostEnabled || false;
         document.getElementById('autoPostTime').value = config.autoPostTime || '09:00';
-        document.getElementById('aiArticleCount').value = config.aiArticleCount || 1;
+        document.getElementById('aiArticleCount').value = (config.seoConfig?.aiArticleCount !== undefined ? config.seoConfig.aiArticleCount : (config.aiArticleCount !== undefined ? config.aiArticleCount : 1));
         document.getElementById('articleWordCount').value = config.seoConfig?.articleWordCount || config.articleWordCount || 1000;
         document.getElementById('rewriteArticleCount').value = config.rewriteArticleCount || 0;
         document.getElementById('autoPostInterval').value = config.autoPostInterval || 24;
@@ -907,7 +907,7 @@
           llmModel: document.getElementById('llmModel').value,
           autoPostEnabled: document.getElementById('autoPostEnabled').checked,
           autoPostTime: document.getElementById('autoPostTime').value,
-          aiArticleCount: parseInt(document.getElementById('aiArticleCount').value) || 1,
+          aiArticleCount: parseInt(document.getElementById('aiArticleCount').value) || 0,
           articleWordCount: parseInt(document.getElementById('articleWordCount').value) || 1000,
           rewriteArticleCount: parseInt(document.getElementById('rewriteArticleCount').value) || 0,
           autoPostInterval: parseInt(document.getElementById('autoPostInterval').value) || 24,
@@ -1047,7 +1047,7 @@
     // 立即生成文章（根据当前配置）
     async function generateArticleNow() {
       // 获取当前配置
-      const aiCount = parseInt(document.getElementById('aiArticleCount').value) || 1;
+      const aiCount = parseInt(document.getElementById('aiArticleCount').value) || 0;
       const rewriteCount = parseInt(document.getElementById('rewriteArticleCount').value) || 0;
       const totalCount = aiCount + rewriteCount;
       
