@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" type="image/png" href="/favicon.png" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <title id="page-title">文章加载中... - 闪阅 AI</title>
+  <meta name="description" id="page-desc" content="闪阅 AI 文章" />
+  <style>
+  body { font-family: 'Inter', 'Noto Sans SC', sans-serif; -webkit-font-smoothing: antialiased; }
+  ::selection { background-color: #7c3aed; color: white; }
+  .prose h2 { font-size: 1.5rem; font-weight: 700; color: #0A1A2F; margin: 2rem 0 1rem; }
+  .prose h3 { font-size: 1.25rem; font-weight: 700; color: #0A1A2F; margin: 1.5rem 0 0.75rem; }
+  .prose p { margin-bottom: 1.5rem; color: #475569; line-height: 1.8; }
+  .prose ul { list-style: disc; padding-left: 1.5rem; margin-bottom: 1.5rem; color: #475569; }
+  .prose ol { list-style: decimal; padding-left: 1.5rem; margin-bottom: 1.5rem; color: #475569; }
+  .prose li { margin-bottom: 0.5rem; line-height: 1.7; }
+  .prose strong { color: #0A1A2F; font-weight: 600; }
+  .prose blockquote { border-left: 4px solid #7c3aed; padding-left: 1.5rem; margin: 2rem 0; color: #64748b; font-style: italic; }
+  </style>
+</head>
+<body class="bg-[#fcfcfc]">
+
+<nav class="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-100">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex items-center justify-between h-16">
+      <a href="/" class="flex items-center gap-2">
+        <div class="w-8 h-8 bg-[#7c3aed] rounded-lg flex items-center justify-center">
+          <span class="text-white font-bold text-sm">闪</span>
+        </div>
+        <span class="font-bold text-[#0A1A2F] text-lg">闪阅</span>
+        <span class="text-xs text-slate-400 ml-1">JOTO 旗下产品</span>
+      </a>
+      <div class="hidden md:flex items-center gap-8">
+        <a href="/#capabilities" class="text-slate-600 hover:text-[#7c3aed] text-sm font-medium transition-colors">核心能力</a>
+        <a href="/#architecture" class="text-slate-600 hover:text-[#7c3aed] text-sm font-medium transition-colors">技术架构</a>
+        <a href="/news/" class="text-[#7c3aed] text-sm font-medium">新闻博客</a>
+        <a href="/#contact" class="text-slate-600 hover:text-[#7c3aed] text-sm font-medium transition-colors">联络我们</a>
+      </div>
+      <div class="flex items-center gap-3">
+        <a href="/login.html" class="text-sm font-medium text-slate-600 hover:text-[#7c3aed] transition-colors">登录</a>
+        <a href="/#contact" class="px-4 py-2 bg-[#7c3aed] hover:bg-[#6d28d9] text-white text-sm font-bold rounded-full transition-colors">预约演示</a>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- Loading state -->
+<div id="loading-state" class="pt-32 pb-16 text-center">
+  <div class="inline-block w-8 h-8 border-4 border-[#7c3aed] border-t-transparent rounded-full animate-spin mb-4"></div>
+  <p class="text-slate-400">文章加载中...</p>
+</div>
+
+<!-- Article content (hidden until loaded) -->
+<div id="article-content" style="display:none;">
+  <!-- Hero image -->
+  <div id="hero-section" class="pt-16 relative overflow-hidden h-72 md:h-96 bg-[#0A1A2F]">
+    <img id="hero-img" src="" alt="" class="w-full h-full object-cover opacity-60">
+    <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent"></div>
+    <div class="absolute bottom-0 left-0 right-0 p-8 max-w-4xl mx-auto">
+      <div id="article-category" class="inline-block px-3 py-1 bg-[#7c3aed] text-white text-xs font-bold rounded-full mb-3"></div>
+      <h1 id="article-title" class="text-2xl md:text-4xl font-black text-white leading-tight"></h1>
+    </div>
+  </div>
+
+  <!-- Article meta + body -->
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <!-- Breadcrumb -->
+    <nav class="flex items-center gap-2 text-sm text-slate-400 mb-8">
+      <a href="/" class="hover:text-[#7c3aed] transition-colors">首页</a>
+      <span>/</span>
+      <a href="/news/" class="hover:text-[#7c3aed] transition-colors">新闻博客</a>
+      <span>/</span>
+      <span id="breadcrumb-title" class="text-slate-600 truncate max-w-xs"></span>
+    </nav>
+
+    <!-- Meta info -->
+    <div class="flex items-center gap-4 text-sm text-slate-400 mb-8 pb-8 border-b border-slate-100">
+      <span id="article-date"></span>
+      <span>·</span>
+      <span id="article-readtime"></span>
+      <span>·</span>
+      <span id="article-keyword" class="text-[#7c3aed] font-medium"></span>
+    </div>
+
+    <!-- Article body -->
+    <article id="article-body" class="prose max-w-none text-lg"></article>
+
+    <!-- Share -->
+    <div class="mt-12 pt-8 border-t border-slate-100 flex items-center justify-between">
+      <a href="/news/" class="inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-[#7c3aed] transition-colors">
+        ← 返回文章列表
+      </a>
+      <button onclick="navigator.clipboard.writeText(location.href).then(()=>alert('链接已复制！'))" 
+        class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-medium rounded-full transition-colors">
+        分享文章
+      </button>
+    </div>
+
+    <!-- CTA -->
+    <div class="mt-16 bg-gradient-to-br from-[#7c3aed] to-[#4f46e5] rounded-3xl p-8 text-center text-white">
+      <h3 class="text-2xl font-black mb-3">准备好体验 AI 阅卷了吗？</h3>
+      <p class="text-purple-100 mb-6">立即预约演示，了解闪阅如何为您的学校或机构提供定制化解决方案。</p>
+      <a href="/#contact" class="inline-block px-8 py-3 bg-white text-[#7c3aed] font-bold rounded-full hover:bg-purple-50 transition-colors">
+        预约演示 →
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Error state -->
+<div id="error-state" style="display:none;" class="pt-32 pb-16 text-center">
+  <p class="text-slate-400 text-lg mb-4">文章不存在或已被删除</p>
+  <a href="/news/" class="text-[#7c3aed] font-medium hover:underline">← 返回文章列表</a>
+</div>
+
+<footer class="bg-[#0A1A2F] text-white py-16 mt-0">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="border-t border-slate-800 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+      <p class="text-slate-500 text-sm">© 2026 JOTO AI. All rights reserved. <a href="https://beian.miit.gov.cn" class="hover:text-white transition-colors">沪ICP备15056478号-5</a></p>
+      <a href="https://jotoai.com" class="text-slate-500 text-sm hover:text-white transition-colors">JOTO AI</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+// Extract article ID from URL: /news/article/[id]/
+function getArticleId() {
+  const parts = location.pathname.split('/').filter(Boolean);
+  // parts: ['news', 'article', '1772198762933']
+  const idx = parts.indexOf('article');
+  if (idx >= 0 && parts[idx + 1]) return parts[idx + 1];
+  return null;
+}
+
+// Convert plain text or Markdown content to HTML
+function textToHtml(text) {
+  if (!text) return '<p>暂无内容</p>';
+  let html = text;
+  // Handle Markdown headings
+  html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+  html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+  html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+  // Handle bold **text**
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  // Handle italic *text*
+  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  // Handle unordered list items
+  html = html.replace(/^[-*] (.+)$/gm, '<li>$1</li>');
+  // Wrap consecutive <li> in <ul>
+  html = html.replace(/(<li>[\s\S]*?<\/li>\n?)+/g, match => '<ul>' + match + '</ul>');
+  // Split remaining text into paragraphs by double newlines
+  const blocks = html.split(/\n\n+/);
+  html = blocks.map(block => {
+    block = block.trim();
+    if (!block) return '';
+    if (block.startsWith('<h') || block.startsWith('<ul') || block.startsWith('<li')) return block;
+    block = block.replace(/\n/g, '<br>');
+    return `<p>${block}</p>`;
+  }).join('\n');
+  return html;
+}
+
+async function loadArticle() {
+  const id = getArticleId();
+  if (!id) {
+    showError();
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/articles');
+    if (!res.ok) throw new Error('API error');
+    const articles = await res.json();
+    const article = articles.find(a => String(a.id) === String(id));
+    
+    if (!article) {
+      showError();
+      return;
+    }
+
+    // Update page meta
+    document.getElementById('page-title').textContent = article.title + ' - 闪阅 AI';
+    document.getElementById('page-desc').content = (article.content || '').substring(0, 150);
+
+    // Hero image
+    const heroImg = document.getElementById('hero-img');
+    if (article.imageUrl) {
+      heroImg.src = article.imageUrl;
+      heroImg.alt = article.title;
+    } else {
+      document.getElementById('hero-section').style.background = 'linear-gradient(135deg, #0A1A2F, #1a2a4f)';
+    }
+
+    // Fill content
+    document.getElementById('article-category').textContent = article.keyword || 'AI教育';
+    document.getElementById('article-title').textContent = article.title;
+    document.getElementById('breadcrumb-title').textContent = article.title;
+    
+    const dateStr = article.createdAt ? article.createdAt.substring(0, 10) : '';
+    document.getElementById('article-date').textContent = dateStr;
+    
+    const words = (article.content || '').length;
+    const mins = Math.max(3, Math.round(words / 400));
+    document.getElementById('article-readtime').textContent = mins + ' min read';
+    document.getElementById('article-keyword').textContent = '#' + (article.keyword || 'AI教育');
+
+    // Render content
+    const body = document.getElementById('article-body');
+    // Check if content is HTML or plain text
+    if (article.content && (article.content.includes('<p>') || article.content.includes('<h'))) {
+      body.innerHTML = article.content;
+    } else {
+      body.innerHTML = textToHtml(article.content || '');
+    }
+
+    // Show article
+    document.getElementById('loading-state').style.display = 'none';
+    document.getElementById('article-content').style.display = 'block';
+
+  } catch(e) {
+    console.error(e);
+    showError();
+  }
+}
+
+function showError() {
+  document.getElementById('loading-state').style.display = 'none';
+  document.getElementById('error-state').style.display = 'block';
+}
+
+document.addEventListener('DOMContentLoaded', loadArticle);
+</script>
+
+</body>
+</html>
