@@ -586,7 +586,7 @@ app.post('/api/admin/invite', verifyToken, async (req, res) => {
     }
     
     const nodemailer = require('nodemailer');
-    const transporter = nodemailer.createTransporter({
+    const transporter = nodemailer.createTransport({
       host: emailConfig.host,
       port: emailConfig.port,
       secure: emailConfig.secure !== false,
@@ -598,7 +598,7 @@ app.post('/api/admin/invite', verifyToken, async (req, res) => {
     
     const websiteUrl = brandConfig?.websiteUrl || 'https://your-domain.com';
     const brandName = brandConfig?.name || '管理后台';
-    const loginUrl = `${websiteUrl}/backend/login.html`;
+    const loginUrl = `${websiteUrl}/login.html`;
     
     await transporter.sendMail({
       from: emailConfig.from,
@@ -888,7 +888,10 @@ app.post('/api/analytics', async (req, res) => {
 async function scheduleArticleGeneration() {
   const config = await getConfig();
   
-  if (!config.autoPostEnabled) {
+  // 读取 seoConfig 中的自动发布开关（管理界面保存在此处）
+  var autoPublishEnabled = (config.seoConfig && config.seoConfig.autoPublish) ? true : (config.autoPostEnabled || false);
+  if (!autoPublishEnabled) {
+    console.log("[定时发布] 自动发布未启用，跳过");
     return;
   }
   
@@ -896,26 +899,41 @@ async function scheduleArticleGeneration() {
   console.log(`搜索改写: ${config.enableSearchRewrite ? '启用' : '禁用'}`);
   
   try {
-    const llmConfig = config.llmApiKey && config.llmApiEndpoint ? {
-      apiKey: config.llmApiKey,
-      apiEndpoint: config.llmApiEndpoint,
-      model: config.llmModel
+    // 优先读取 llmConfig 嵌套对象（管理界面保存在此处）
+    var _llmKey = (config.llmConfig && config.llmConfig.apiKey) ? config.llmConfig.apiKey : (config.llmApiKey || "");
+    var _llmUrl = (config.llmConfig && config.llmConfig.baseURL) ? config.llmConfig.baseURL : (config.llmApiEndpoint || "");
+    var _llmModel = (config.llmConfig && config.llmConfig.model) ? config.llmConfig.model : (config.llmModel || "");
+    const llmConfig = (_llmKey && _llmUrl) ? {
+      apiKey: _llmKey,
+      apiEndpoint: _llmUrl,
+      model: _llmModel
     } : null;
     
+    // 优先读取 imageConfig 嵌套对象
     const imageConfig = {
-      useAI: config.imageUseAI,
-      apiKey: config.imageApiKey,
-      unsplashApiKey: config.unsplashApiKey
+      useAI: (config.imageConfig && config.imageConfig.useAI) ? config.imageConfig.useAI : (config.imageUseAI || false),
+      apiKey: (config.imageConfig && config.imageConfig.aiApiKey) ? config.imageConfig.aiApiKey : (config.imageApiKey || ""),
+      unsplashApiKey: (config.imageConfig && config.imageConfig.unsplashApiKey) ? config.imageConfig.unsplashApiKey : (config.unsplashApiKey || "")
     };
+    
+    // 读取 seoConfig 中的文章数量配置
+    var _aiCount = (config.seoConfig && config.seoConfig.aiArticleCount) ? config.seoConfig.aiArticleCount : (config.aiArticleCount || 1);
+    var _rewriteCount = (config.seoConfig && config.seoConfig.rewriteArticleCount) ? config.seoConfig.rewriteArticleCount : (config.rewriteArticleCount || 0);
+    var _enableRewrite = (config.seoConfig && config.seoConfig.enableSearchRewrite) ? config.seoConfig.enableSearchRewrite : (config.enableSearchRewrite || false);
+    var _rewriteRounds = (config.seoConfig && config.seoConfig.rewriteRounds) ? config.seoConfig.rewriteRounds : (config.rewriteRounds || 3);
+    
+    console.log("[定时发布] LLM配置:", _llmKey ? ("已配置(" + _llmModel + ")") : "未配置");
+    console.log("[定时发布] 图片配置: Unsplash=" + (imageConfig.unsplashApiKey ? "已配置" : "未配置"));
+    console.log("[定时发布] 文章数量: AI原创=" + _aiCount + ", 改写=" + _rewriteCount);
     
     // 使用新的批量生成功能
     const newArticles = await generateArticles({
       llmConfig,
       imageConfig,
-      enableSearchRewrite: config.enableSearchRewrite,
-      rewriteRounds: config.rewriteRounds || 3,
-      aiArticleCount: config.aiArticleCount || 1,
-      rewriteArticleCount: config.rewriteArticleCount || 0
+      enableSearchRewrite: _enableRewrite,
+      rewriteRounds: _rewriteRounds,
+      aiArticleCount: _aiCount,
+      rewriteArticleCount: _rewriteCount
     });
     
     // 保存所有文章
@@ -932,8 +950,28 @@ async function scheduleArticleGeneration() {
   }
 }
 
-// 每天凌晨2点执行
-cron.schedule('0 2 * * *', scheduleArticleGeneration);
+// 动态定时任务：每分钟检查是否到达配置的发布时间
+cron.schedule('* * * * *', async function() {
+  try {
+    var cfg = await getConfig();
+    var enabled = (cfg.seoConfig && cfg.seoConfig.autoPublish) ? true : (cfg.autoPostEnabled || false);
+    if (!enabled) return;
+    
+    var publishTime = (cfg.seoConfig && cfg.seoConfig.publishTime) ? cfg.seoConfig.publishTime : (cfg.autoPostTime || "09:00");
+    var parts = publishTime.split(":");
+    var targetHour = parseInt(parts[0], 10);
+    var targetMinute = parseInt(parts[1], 10);
+    
+    var now = new Date();
+    if (now.getHours() === targetHour && now.getMinutes() === targetMinute) {
+      console.log("[定时发布] 到达发布时间 " + publishTime + "，开始生成文章...");
+      await scheduleArticleGeneration();
+    }
+  } catch (err) {
+    console.error("[定时发布] 时间检查出错:", err.message);
+  }
+});
+console.log('[定时发布] 定时任务已启动，每分钟检查发布时间');
 
 // SSL证书管理API
 app.post('/api/admin/renew-certificate', verifyToken, async (req, res) => {

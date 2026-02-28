@@ -653,7 +653,7 @@
     function checkAuth() {
       const token = localStorage.getItem('adminToken');
       if (!token) {
-        window.location.href = '/admin/login.html';
+        window.location.href = '/login.html';
         return false;
       }
       return token;
@@ -670,7 +670,7 @@
     async function fetchWithAuth(url, options = {}) {
       const token = localStorage.getItem('adminToken');
       if (!token) {
-        window.location.href = '/admin/login.html';
+        window.location.href = '/login.html';
         throw new Error('未登录');
       }
       
@@ -684,7 +684,7 @@
       // 如果返回401，说明token无效
       if (response.status === 401) {
         localStorage.removeItem('adminToken');
-        window.location.href = '/admin/login.html';
+        window.location.href = '/login.html';
         throw new Error('登录已过期');
       }
       
@@ -1236,7 +1236,7 @@
     function logout() {
       if (confirm('确定要退出登录吗？')) {
         localStorage.removeItem('adminToken');
-        window.location.href = '/admin/login.html';
+        window.location.href = '/login.html';
       }
     }
 
@@ -1670,6 +1670,117 @@
         checkSSLStatus();
       }, 1000);
     });
+
+    // ===== 强制修改密码弹窗 =====
+    async function checkForcePasswordChange() {
+      const needsChange = localStorage.getItem('needsPasswordChange');
+      if (needsChange !== 'true') return;
+
+      // 以后端数据为准：查询当前管理员的 needsPasswordChange 字段
+      try {
+        const email = localStorage.getItem('adminEmail');
+        const resp = await fetchWithAuth();
+        const data = await resp.json();
+        if (data.success && data.admins) {
+          const me = data.admins.find(a => a.email === email);
+          if (me && me.needsPasswordChange === false) {
+            // 后端已经是 false，清除本地残留标志，不弹窗
+            localStorage.removeItem('needsPasswordChange');
+            localStorage.removeItem('tempPassword');
+            return;
+          }
+        }
+      } catch (e) {
+        // 网络错误时降级为信任 localStorage
+      }
+
+      document.getElementById('forceChangeModal').style.display = 'flex';
+    }
+
+    async function submitForcePasswordChange() {
+      const newPass = document.getElementById('forceNewPassword').value.trim();
+      const confirmPass = document.getElementById('forceConfirmPassword').value.trim();
+      const errEl = document.getElementById('forceChangeError');
+
+      if (!newPass || !confirmPass) {
+        errEl.textContent = '请填写新密码和确认密码';
+        errEl.style.display = 'block';
+        return;
+      }
+      if (newPass.length < 8) {
+        errEl.textContent = '密码长度不能少于 8 位';
+        errEl.style.display = 'block';
+        return;
+      }
+      if (newPass !== confirmPass) {
+        errEl.textContent = '两次输入的密码不一致';
+        errEl.style.display = 'block';
+        return;
+      }
+
+      errEl.style.display = 'none';
+      const btn = document.getElementById('forceChangeBtnText');
+      btn.textContent = '保存中...';
+
+      try {
+        // 用临时密码作为 oldPassword，同时传入当前登录用户的 email
+        const tempPassword = localStorage.getItem('tempPassword') || '';
+        const adminEmail = localStorage.getItem('adminEmail') || '';
+        const response = await fetchWithAuth(`${API_BASE}/admin/change-password`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: adminEmail, oldPassword: tempPassword, newPassword: newPass })
+        });
+        const result = await response.json();
+        if (result.success) {
+          localStorage.removeItem('needsPasswordChange');
+          localStorage.removeItem('tempPassword');
+          document.getElementById('forceChangeModal').style.display = 'none';
+          showStatus('✅ 密码已修改成功，请妥善保管！', 'success');
+        } else {
+          errEl.textContent = result.message || '修改失败，请重试';
+          errEl.style.display = 'block';
+        }
+      } catch (e) {
+        errEl.textContent = '网络错误，请重试';
+        errEl.style.display = 'block';
+      }
+      btn.textContent = '确认修改密码';
+    }
+
+    // 在 DOMContentLoaded 后检查是否需要强制修改密码
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(checkForcePasswordChange, 600);
+    });
   </script>
+
+  <!-- 强制修改密码弹窗 -->
+  <div id="forceChangeModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:9999; align-items:center; justify-content:center;">
+    <div style="background:#fff; border-radius:16px; padding:36px 32px; width:100%; max-width:440px; box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+      <div style="text-align:center; margin-bottom:24px;">
+        <div style="font-size:48px; margin-bottom:8px;">🔐</div>
+        <h2 style="font-size:20px; font-weight:700; color:#1f2937; margin:0 0 8px;">请立即修改密码</h2>
+        <p style="color:#6b7280; font-size:14px; margin:0;">您正在使用临时密码登录，为保障账号安全，请立即设置新密码。</p>
+      </div>
+      <div style="margin-bottom:16px;">
+        <label style="display:block; font-size:14px; font-weight:500; color:#374151; margin-bottom:6px;">新密码</label>
+        <input id="forceNewPassword" type="password" placeholder="请输入新密码（至少8位）"
+          style="width:100%; padding:10px 14px; border:1px solid #d1d5db; border-radius:8px; font-size:14px; box-sizing:border-box; outline:none;"
+          onkeydown="if(event.key==='Enter')document.getElementById('forceConfirmPassword').focus()" />
+      </div>
+      <div style="margin-bottom:16px;">
+        <label style="display:block; font-size:14px; font-weight:500; color:#374151; margin-bottom:6px;">确认新密码</label>
+        <input id="forceConfirmPassword" type="password" placeholder="再次输入新密码"
+          style="width:100%; padding:10px 14px; border:1px solid #d1d5db; border-radius:8px; font-size:14px; box-sizing:border-box; outline:none;"
+          onkeydown="if(event.key==='Enter')submitForcePasswordChange()" />
+      </div>
+      <div id="forceChangeError" style="display:none; color:#ef4444; font-size:13px; margin-bottom:12px; padding:8px 12px; background:#fef2f2; border-radius:6px;"></div>
+      <button id="forceChangeBtnText" onclick="submitForcePasswordChange()"
+        style="width:100%; padding:12px; background:linear-gradient(135deg,#7c3aed,#6d28d9); color:#fff; border:none; border-radius:8px; font-size:15px; font-weight:600; cursor:pointer;">
+        确认修改密码
+      </button>
+      <p style="text-align:center; font-size:12px; color:#9ca3af; margin-top:12px;">修改密码后方可正常使用后台</p>
+    </div>
+  </div>
 </body>
 </html>

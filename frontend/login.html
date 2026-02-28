@@ -148,17 +148,6 @@
       </div>
     </form>
 
-    <!-- 默认账号提示 -->
-    <div class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-      <p class="text-sm text-blue-800 text-center">
-        <strong>默认账号：</strong>test@abc.com / Test123
-      </p>
-      <p class="text-xs text-blue-600 text-center mt-1">
-        首次登录后请立即修改密码
-      </p>
-    </div>
-  </div>
-
   <script>
     const loginForm = document.getElementById('loginForm');
     const otpForm = document.getElementById('otpForm');
@@ -238,13 +227,18 @@
           localStorage.setItem('adminEmail', data.email);
           localStorage.setItem('adminName', data.name);
           
-          // 检查是否需要修改密码
+          // 检查是否需要修改密码（以后端返回值为准，清除旧的本地标志）
           if (data.needsPasswordChange) {
             localStorage.setItem('needsPasswordChange', 'true');
+            localStorage.setItem('tempPassword', password); // 保存临时密码供强制修改时使用
+          } else {
+            // 已修改过密码，清除可能残留的旧标志
+            localStorage.removeItem('needsPasswordChange');
+            localStorage.removeItem('tempPassword');
           }
           
           // 跳转到管理后台
-          window.location.href = '/admin/admin.html';
+          window.location.href = '/admin.html';
         } else {
           showError(data.message || '登录失败，请检查邮箱和密码');
         }
@@ -336,9 +330,10 @@
           localStorage.setItem('adminEmail', data.email);
           localStorage.setItem('adminName', data.name);
           localStorage.setItem('needsPasswordChange', 'true'); // 使用OTP登录后必须修改密码
+          localStorage.setItem('tempPassword', oneTimePassword); // 保存OTP供强制修改时使用
           
           // 跳转到管理后台
-          window.location.href = '/admin/admin.html';
+          window.location.href = '/admin.html';
         } else {
           showOtpError(data.message || '登录失败，请检查一次性密码');
         }
@@ -371,7 +366,7 @@
       .then(res => res.json())
       .then(data => {
         if (data.valid) {
-          window.location.href = '/admin/admin.html';
+          window.location.href = '/admin.html';
         }
       })
       .catch(err => console.error('Token verification error:', err));
