@@ -482,7 +482,7 @@ app.post('/api/admin/config', verifyToken, async (req, res) => {
   }
   
   // 更新SEO配置
-  if (data.autoPostEnabled !== undefined || data.autoPostTime !== undefined || data.autoPostInterval !== undefined || data.postsPerDay !== undefined || data.aiArticleCount !== undefined || data.rewriteArticleCount !== undefined || data.enableSearchRewrite !== undefined || data.rewriteRounds !== undefined || data.seoKeywords !== undefined) {
+  if (data.autoPostEnabled !== undefined || data.autoPostTime !== undefined || data.autoPostInterval !== undefined || data.postsPerDay !== undefined || data.aiArticleCount !== undefined || data.rewriteArticleCount !== undefined || data.enableSearchRewrite !== undefined || data.rewriteRounds !== undefined || data.seoKeywords !== undefined || data.articleWordCount !== undefined) {
     config.seoConfig = config.seoConfig || {};
     if (data.autoPostEnabled !== undefined) config.seoConfig.autoPublish = data.autoPostEnabled;
     if (data.autoPostTime !== undefined) config.seoConfig.publishTime = data.autoPostTime;
@@ -493,6 +493,7 @@ app.post('/api/admin/config', verifyToken, async (req, res) => {
     if (data.enableSearchRewrite !== undefined) config.seoConfig.enableSearchRewrite = data.enableSearchRewrite;
     if (data.rewriteRounds !== undefined) config.seoConfig.rewriteRounds = data.rewriteRounds;
     if (data.seoKeywords !== undefined) config.seoConfig.keywords = data.seoKeywords;
+    if (data.articleWordCount !== undefined) config.seoConfig.articleWordCount = data.articleWordCount;
   }
   
   await saveConfig(config);
@@ -926,6 +927,10 @@ async function scheduleArticleGeneration() {
     console.log("[定时发布] 图片配置: Unsplash=" + (imageConfig.unsplashApiKey ? "已配置" : "未配置"));
     console.log("[定时发布] 文章数量: AI原创=" + _aiCount + ", 改写=" + _rewriteCount);
     
+    // 读取文章字数配置
+    var _wordCount = (config.seoConfig && config.seoConfig.articleWordCount) ? config.seoConfig.articleWordCount : (config.articleWordCount || 1000);
+    console.log("[定时发布] 目标字数:", _wordCount);
+    
     // 使用新的批量生成功能
     const newArticles = await generateArticles({
       llmConfig,
@@ -933,7 +938,8 @@ async function scheduleArticleGeneration() {
       enableSearchRewrite: _enableRewrite,
       rewriteRounds: _rewriteRounds,
       aiArticleCount: _aiCount,
-      rewriteArticleCount: _rewriteCount
+      rewriteArticleCount: _rewriteCount,
+      wordCount: _wordCount
     });
     
     // 保存所有文章

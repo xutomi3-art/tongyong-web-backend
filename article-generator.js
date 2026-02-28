@@ -326,7 +326,8 @@ async function generateArticles(config = {}) {
     aiArticleCount = 1,
     rewriteArticleCount = 0,
     enableImageDeduplication = false,
-    deduplicationWindow = 5
+    deduplicationWindow = 5,
+    wordCount = 1000
   } = config;
   
   // 构建去重配置对象
@@ -349,7 +350,7 @@ async function generateArticles(config = {}) {
   for (let i = 0; i < aiArticleCount; i++) {
     currentIndex++;
     console.log(`\n[${currentIndex}/${totalCount}] 生成AI原创文章...`);
-    const aiArticle = await generateArticle(llmConfig, imageConfig, dedupConfig);
+    const aiArticle = await generateArticle(llmConfig, imageConfig, dedupConfig, wordCount);
     articles.push(aiArticle);
     console.log(`✓ AI原创文章生成完成: ${aiArticle.title}`);
     
