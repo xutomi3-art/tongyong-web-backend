@@ -176,9 +176,11 @@ async function generateArticleWithLLM(llmConfig, keyword, wordCount = 1000) {
 }
 
 // 生成AI原创文章
-async function generateArticle(llmConfig = null, imageConfig = null, dedupConfig = null, wordCount = 1000) {
+async function generateArticle(llmConfig = null, imageConfig = null, dedupConfig = null, wordCount = 1000, keywords = null) {
   console.log('[generateArticle] 收到的imageConfig:', JSON.stringify(imageConfig));
-  const keyword = KEYWORDS[Math.floor(Math.random() * KEYWORDS.length)];
+  // 优先使用传入的关键词列表（来自管理后台配置），否则使用默认列表
+  const keywordList = (keywords && keywords.length > 0) ? keywords : KEYWORDS;
+  const keyword = keywordList[Math.floor(Math.random() * keywordList.length)];
   
   let articleData;
   let imageUrl;
@@ -247,8 +249,10 @@ async function generateArticle(llmConfig = null, imageConfig = null, dedupConfig
 }
 
 // 生成搜索改写文章
-async function generateRewrittenArticle(llmConfig = null, imageConfig = null, rewriteRounds = 3, dedupConfig = null) {
-  const keyword = KEYWORDS[Math.floor(Math.random() * KEYWORDS.length)];
+async function generateRewrittenArticle(llmConfig = null, imageConfig = null, rewriteRounds = 3, dedupConfig = null, keywords = null) {
+  // 优先使用传入的关键词列表（来自管理后台配置），否则使用默认列表
+  const keywordList = (keywords && keywords.length > 0) ? keywords : KEYWORDS;
+  const keyword = keywordList[Math.floor(Math.random() * keywordList.length)];
   
   console.log(`\n========== 开始生成搜索改写文章 ==========`);
   console.log(`关键词: ${keyword}`);
@@ -261,7 +265,7 @@ async function generateRewrittenArticle(llmConfig = null, imageConfig = null, re
     
     if (!articles || articles.length === 0) {
       console.log('未找到相关文章，回退到AI原创生成');
-      return await generateArticle(llmConfig, imageConfig);
+      return await generateArticle(llmConfig, imageConfig, null, 1000, keywords);
     }
     
     // 2. 选择最佳文章
@@ -313,7 +317,7 @@ async function generateRewrittenArticle(llmConfig = null, imageConfig = null, re
   } catch (error) {
     console.error('搜索改写失败:', error.message);
     console.log('回退到AI原创生成');
-    return await generateArticle(llmConfig, imageConfig);
+    return await generateArticle(llmConfig, imageConfig, null, 1000, keywords);
   }
 }
 
@@ -328,7 +332,8 @@ async function generateArticles(config = {}) {
     rewriteArticleCount = 0,
     enableImageDeduplication = false,
     deduplicationWindow = 5,
-    wordCount = 1000
+    wordCount = 1000,
+    keywords = null
   } = config;
   
   // 构建去重配置对象
@@ -351,7 +356,7 @@ async function generateArticles(config = {}) {
   for (let i = 0; i < aiArticleCount; i++) {
     currentIndex++;
     console.log(`\n[${currentIndex}/${totalCount}] 生成AI原创文章...`);
-    const aiArticle = await generateArticle(llmConfig, imageConfig, dedupConfig, wordCount);
+    const aiArticle = await generateArticle(llmConfig, imageConfig, dedupConfig, wordCount, keywords);
     articles.push(aiArticle);
     console.log(`✓ AI原创文章生成完成: ${aiArticle.title}`);
     
@@ -366,7 +371,7 @@ async function generateArticles(config = {}) {
     for (let i = 0; i < rewriteArticleCount; i++) {
       currentIndex++;
       console.log(`\n[${currentIndex}/${totalCount}] 生成搜索改写文章...`);
-      const rewrittenArticle = await generateRewrittenArticle(llmConfig, imageConfig, rewriteRounds, dedupConfig);
+      const rewrittenArticle = await generateRewrittenArticle(llmConfig, imageConfig, rewriteRounds, dedupConfig, keywords);
       articles.push(rewrittenArticle);
       console.log(`✓ 搜索改写文章生成完成: ${rewrittenArticle.title}`);
       
