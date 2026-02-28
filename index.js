@@ -717,7 +717,12 @@ app.post('/api/admin/generate-article', verifyToken, async (req, res) => {
     console.log('[DEBUG] imageConfig:', imageConfig);
     console.log('[DEBUG] wordCount:', wordCount);
     
-    const article = await generateArticle(llmConfig, imageConfig, null, wordCount);
+    // 读取 SEO 关键词配置
+    const keywordsStr = (config.seoConfig && config.seoConfig.keywords) ? config.seoConfig.keywords : (config.seoKeywords || '');
+    const keywords = keywordsStr ? keywordsStr.split(',').map(k => k.trim()).filter(k => k.length > 0) : null;
+    console.log('[DEBUG] keywords:', keywords ? keywords.join(', ') : '使用默认关键词');
+    
+    const article = await generateArticle(llmConfig, imageConfig, null, wordCount, keywords);
     const articles = await getArticles();
     articles.unshift(article);
     await saveArticles(articles);
@@ -763,13 +768,19 @@ app.post('/api/admin/generate-rewrite-article', verifyToken, async (req, res) =>
     console.log('[改写文章] 开始生成，改写轮数:', rewriteRounds);
     if (tavilyConfig) console.log('[改写文章] 使用 Tavily API 搜索');
     
+    // 读取 SEO 关键词配置
+    const keywordsStrR = (config.seoConfig && config.seoConfig.keywords) ? config.seoConfig.keywords : (config.seoKeywords || '');
+    const keywordsR = keywordsStrR ? keywordsStrR.split(',').map(k => k.trim()).filter(k => k.length > 0) : null;
+    console.log('[改写文章] SEO关键词:', keywordsR ? keywordsR.join(', ') : '使用默认关键词');
+    
     // 使用 generateRewrittenArticle（已包含搜索+改写+配图完整流程）
     const { generateRewrittenArticle } = require('./article-generator');
     const article = await generateRewrittenArticle(
       llmConfig,
       imageConfig,
       rewriteRounds,
-      { tavilyConfig, googleApiKey: config.googleApiKey, googleSearchEngineId: config.googleSearchEngineId }
+      { tavilyConfig, googleApiKey: config.googleApiKey, googleSearchEngineId: config.googleSearchEngineId },
+      keywordsR
     );
     
     const articles = await getArticles();
@@ -1028,6 +1039,11 @@ async function scheduleArticleGeneration() {
     var _wordCount = (config.seoConfig && config.seoConfig.articleWordCount) ? config.seoConfig.articleWordCount : (config.articleWordCount || 1000);
     console.log("[定时发布] 目标字数:", _wordCount);
     
+    // 读取 SEO 关键词配置
+    var _keywordsStr = (config.seoConfig && config.seoConfig.keywords) ? config.seoConfig.keywords : (config.seoKeywords || '');
+    var _keywords = _keywordsStr ? _keywordsStr.split(',').map(function(k) { return k.trim(); }).filter(function(k) { return k.length > 0; }) : null;
+    console.log("[定时发布] SEO关键词:", _keywords ? _keywords.join(', ') : '使用默认关键词');
+    
     // 使用新的批量生成功能
     const newArticles = await generateArticles({
       llmConfig,
@@ -1037,6 +1053,7 @@ async function scheduleArticleGeneration() {
       aiArticleCount: _aiCount,
       rewriteArticleCount: _rewriteCount,
       wordCount: _wordCount,
+      keywords: _keywords,
       tavilyConfig: _tavilyApiKey ? { apiKey: _tavilyApiKey, maxResults: _tavilyMaxResults } : null
     });
     
