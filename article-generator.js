@@ -129,22 +129,23 @@ async function generateArticleWithLLM(llmConfig, keyword, wordCount = 1000) {
         messages: [
           {
             role: 'system',
-            content: '你是一个专业的教育科技内容创作者，擅长撰写关于AI教育、智能阅卷等主题的SEO优化文章。'
+            content: '你是一个专业的教育科技内容创作者，擅长撰写关于AI教育、智能阅卷等主题的SEO优化文章。请严格按照要求的字数生成文章，不得少于要求字数的90%，内容要充实详细。'
           },
           {
             role: 'user',
             content: `请写一篇关于"${keyword}"的SEO文章，要求：
-1. 字数约${wordCount}字（误差±10%）
+1. 字数必须达到${wordCount}字以上（不少于${Math.floor(wordCount * 0.9)}字），内容要充实，多举例说明
 2. 包含吸引人的标题
 3. 内容专业、实用，适合教育工作者阅读
 4. 自然融入关键词"${keyword}"
 5. 包含实际应用场景和案例
-6. **重要**：文章必须分段，每段3-5句话，段落之间用空行分隔
+6. **重要**：文章必须分段，每段3-5句话，段落之间用空行分隔，至少8-10个段落
 7. **重要**：使用\n\n来分隔段落，确保文章有清晰的段落结构
 8. 以JSON格式返回，包含title和content字段，content中使用\n\n分隔段落`
           }
         ],
         temperature: 0.8,
+        max_tokens: Math.max(4000, wordCount * 2),
       },
       {
         headers: {

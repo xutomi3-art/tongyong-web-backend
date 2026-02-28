@@ -62,7 +62,7 @@ async function rewriteArticle(originalArticle, keyword, llmConfig, rewriteRounds
 2. 使用不同的表达方式和句式结构
 3. 确保语言流畅自然
 4. 围绕关键词"${keyword}"展开
-5. 文章长度保持在800-1500字
+5. 文章长度必须达到${wordCount}字以上（不少于${Math.floor(wordCount * 0.9)}字），内容要充实详细
 6. 避免AI痕迹，使用更人性化的表达
 7. 直接输出 HTML 格式内容，使用 <h2>、<h3>、<p>、<strong>、<ul>、<li> 等标签，不要使用 Markdown 语法（不要用 ###、**、- 等）
 8. 不要输出任何前缀、说明或 \`\`\`html 代码块标记，直接输出 HTML 内容
@@ -88,7 +88,7 @@ ${originalArticle}`;
         model: llmConfig.model || 'gpt-3.5-turbo',
         messages,
         temperature: 0.8,
-        max_tokens: 2500
+        max_tokens: Math.max(4000, wordCount * 2)
       });
 
       rewrittenContent = response.choices[0].message.content.trim();
