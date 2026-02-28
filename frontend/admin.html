@@ -453,6 +453,44 @@
             </div>
           </div>
 
+
+          <!-- Tavily 在线搜索 API 配置 -->
+          <div class="mb-6 p-4 bg-indigo-50 border-2 border-indigo-200 rounded-lg">
+            <div class="flex items-start mb-3">
+              <span class="text-2xl mr-2">🌐</span>
+              <div class="flex-1">
+                <h4 class="text-base font-semibold text-gray-900">Tavily 在线搜索 API</h4>
+                <p class="mt-1 text-sm text-gray-600">配置 Tavily API 后，搜索改写功能将优先使用 Tavily 获取高质量在线文章内容，效果优于 Bing 爬取。</p>
+              </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Tavily API Key</label>
+                <div class="flex space-x-2">
+                  <input type="password" id="tavilyApiKey" placeholder="tvly-..." 
+                    class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 font-mono text-sm">
+                  <button onclick="togglePassword('tavilyApiKey')" class="px-3 py-2 text-gray-500 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm">👁</button>
+                </div>
+                <p class="mt-1 text-xs text-gray-500">在 <a href="https://tavily.com" target="_blank" class="text-indigo-600 hover:underline">tavily.com</a> 免费注册获取，每月 1000 次免费额度</p>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">搜索结果数量</label>
+                <select id="tavilyMaxResults" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                  <option value="3">3 篇（快速）</option>
+                  <option value="5" selected>5 篇（推荐）</option>
+                  <option value="10">10 篇（全面）</option>
+                </select>
+                <p class="mt-1 text-xs text-gray-500">每次搜索获取的在线文章数量</p>
+              </div>
+            </div>
+            <div class="mt-3 flex items-center space-x-3">
+              <button onclick="testTavily()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm font-medium">
+                🔍 测试连接
+              </button>
+              <span id="tavilyStatus" class="text-sm text-gray-500"></span>
+            </div>
+          </div>
+
           <!-- 图片去重功能 -->
           <div class="mb-6 p-4 bg-blue-50 border-2 border-blue-200 rounded-lg">
             <div class="flex items-start mb-3">
@@ -784,6 +822,8 @@
         document.getElementById('rewriteArticleCount').value = config.rewriteArticleCount || 0;
         document.getElementById('autoPostInterval').value = config.autoPostInterval || 24;
         document.getElementById('enableSearchRewrite').checked = config.enableSearchRewrite || false;
+        document.getElementById('tavilyApiKey').value = config.tavilyConfig?.apiKey || config.tavilyApiKey || '';
+        document.getElementById('tavilyMaxResults').value = config.tavilyConfig?.maxResults || config.tavilyMaxResults || 5;
         document.getElementById('rewriteRounds').value = config.rewriteRounds || 3;
         document.getElementById('enableImageDeduplication').checked = config.enableImageDeduplication || false;
         document.getElementById('deduplicationWindow').value = config.deduplicationWindow || 5;
@@ -872,6 +912,8 @@
           rewriteArticleCount: parseInt(document.getElementById('rewriteArticleCount').value) || 0,
           autoPostInterval: parseInt(document.getElementById('autoPostInterval').value) || 24,
           enableSearchRewrite: document.getElementById('enableSearchRewrite').checked,
+          tavilyApiKey: document.getElementById('tavilyApiKey').value,
+          tavilyMaxResults: parseInt(document.getElementById('tavilyMaxResults').value) || 5,
           rewriteRounds: parseInt(document.getElementById('rewriteRounds').value) || 3,
           enableImageDeduplication: document.getElementById('enableImageDeduplication').checked,
           deduplicationWindow: parseInt(document.getElementById('deduplicationWindow').value) || 5,
@@ -1331,6 +1373,37 @@
       if (_toastTimer) { clearTimeout(_toastTimer); _toastTimer = null; }
     }
     // ────────────────────────────────────────────────────────────────
+
+    // Tavily 测试函数
+    async function testTavily() {
+      const apiKey = document.getElementById('tavilyApiKey').value.trim();
+      const statusEl = document.getElementById('tavilyStatus');
+      if (!apiKey) {
+        statusEl.textContent = '请先填写 Tavily API Key';
+        statusEl.className = 'text-sm text-red-600';
+        return;
+      }
+      statusEl.textContent = '⏳ 测试中...';
+      statusEl.className = 'text-sm text-blue-600';
+      try {
+        const resp = await fetchWithAuth(`${API_BASE}/admin/test-tavily`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ apiKey })
+        });
+        const data = await resp.json();
+        if (data.success) {
+          statusEl.textContent = '✅ 连接成功！返回 ' + (data.resultCount || 0) + ' 条结果';
+          statusEl.className = 'text-sm text-green-600';
+        } else {
+          statusEl.textContent = '❌ ' + (data.message || '连接失败');
+          statusEl.className = 'text-sm text-red-600';
+        }
+      } catch (e) {
+        statusEl.textContent = '❌ 请求失败: ' + e.message;
+        statusEl.className = 'text-sm text-red-600';
+      }
+    }
 
     // Unsplash相关函数
     async function testUnsplash() {

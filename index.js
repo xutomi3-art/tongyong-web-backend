@@ -424,7 +424,10 @@ app.get('/api/admin/config', verifyToken, async (req, res) => {
     rewriteArticleCount: config.seoConfig?.rewriteArticleCount || 0,
     enableSearchRewrite: config.seoConfig?.enableSearchRewrite || false,
     rewriteRounds: config.seoConfig?.rewriteRounds || 3,
-    seoKeywords: config.seoConfig?.keywords || ''
+    seoKeywords: config.seoConfig?.keywords || '',
+    tavilyConfig: config.tavilyConfig || {},
+    tavilyApiKey: config.tavilyConfig?.apiKey || '',
+    tavilyMaxResults: config.tavilyConfig?.maxResults || 5
   });
 });
 
@@ -482,7 +485,7 @@ app.post('/api/admin/config', verifyToken, async (req, res) => {
   }
   
   // 更新SEO配置
-  if (data.autoPostEnabled !== undefined || data.autoPostTime !== undefined || data.autoPostInterval !== undefined || data.postsPerDay !== undefined || data.aiArticleCount !== undefined || data.rewriteArticleCount !== undefined || data.enableSearchRewrite !== undefined || data.rewriteRounds !== undefined || data.seoKeywords !== undefined || data.articleWordCount !== undefined) {
+  if (data.autoPostEnabled !== undefined || data.autoPostTime !== undefined || data.autoPostInterval !== undefined || data.postsPerDay !== undefined || data.aiArticleCount !== undefined || data.rewriteArticleCount !== undefined || data.enableSearchRewrite !== undefined || data.rewriteRounds !== undefined || data.seoKeywords !== undefined || data.articleWordCount !== undefined || data.tavilyApiKey !== undefined || data.tavilyMaxResults !== undefined) {
     config.seoConfig = config.seoConfig || {};
     if (data.autoPostEnabled !== undefined) config.seoConfig.autoPublish = data.autoPostEnabled;
     if (data.autoPostTime !== undefined) config.seoConfig.publishTime = data.autoPostTime;
@@ -494,6 +497,12 @@ app.post('/api/admin/config', verifyToken, async (req, res) => {
     if (data.rewriteRounds !== undefined) config.seoConfig.rewriteRounds = data.rewriteRounds;
     if (data.seoKeywords !== undefined) config.seoConfig.keywords = data.seoKeywords;
     if (data.articleWordCount !== undefined) config.seoConfig.articleWordCount = data.articleWordCount;
+    // Tavily 在线搜索配置
+    if (data.tavilyApiKey !== undefined || data.tavilyMaxResults !== undefined) {
+      config.tavilyConfig = config.tavilyConfig || {};
+      if (data.tavilyApiKey !== undefined) config.tavilyConfig.apiKey = data.tavilyApiKey;
+      if (data.tavilyMaxResults !== undefined) config.tavilyConfig.maxResults = data.tavilyMaxResults;
+    }
   }
   
   await saveConfig(config);
@@ -886,6 +895,32 @@ app.post('/api/analytics', async (req, res) => {
 });
 
 // 定时任务：每天自动生成文章
+// 测试 Tavily API 连接
+app.post('/api/admin/test-tavily', verifyToken, async (req, res) => {
+  try {
+    const { apiKey } = req.body;
+    if (!apiKey) {
+      return res.status(400).json({ success: false, message: '请提供 Tavily API Key' });
+    }
+    const axios = require('axios');
+    const response = await axios.post(
+      'https://api.tavily.com/search',
+      {
+        api_key: apiKey,
+        query: 'AI教育 智能阅卷',
+        search_depth: 'basic',
+        max_results: 3
+      },
+      { timeout: 10000 }
+    );
+    const results = response.data?.results || [];
+    res.json({ success: true, resultCount: results.length, message: 'Tavily API 连接成功' });
+  } catch (error) {
+    const msg = error.response?.data?.message || error.message || '连接失败';
+    res.status(500).json({ success: false, message: msg });
+  }
+});
+
 async function scheduleArticleGeneration() {
   const config = await getConfig();
   
@@ -924,6 +959,12 @@ async function scheduleArticleGeneration() {
     var _rewriteRounds = (config.seoConfig && config.seoConfig.rewriteRounds) ? config.seoConfig.rewriteRounds : (config.rewriteRounds || 3);
     
     console.log("[定时发布] LLM配置:", _llmKey ? ("已配置(" + _llmModel + ")") : "未配置");
+    
+    // 读取 Tavily 配置
+    var _tavilyApiKey = (config.tavilyConfig && config.tavilyConfig.apiKey) ? config.tavilyConfig.apiKey : "";
+    var _tavilyMaxResults = (config.tavilyConfig && config.tavilyConfig.maxResults) ? config.tavilyConfig.maxResults : 5;
+    if (_tavilyApiKey) console.log("[定时发布] Tavily API: 已配置（优先使用）");
+    else console.log("[定时发布] Tavily API: 未配置，将使用 Bing 爬取");
     console.log("[定时发布] 图片配置: Unsplash=" + (imageConfig.unsplashApiKey ? "已配置" : "未配置"));
     console.log("[定时发布] 文章数量: AI原创=" + _aiCount + ", 改写=" + _rewriteCount);
     
@@ -939,7 +980,8 @@ async function scheduleArticleGeneration() {
       rewriteRounds: _rewriteRounds,
       aiArticleCount: _aiCount,
       rewriteArticleCount: _rewriteCount,
-      wordCount: _wordCount
+      wordCount: _wordCount,
+      tavilyConfig: _tavilyApiKey ? { apiKey: _tavilyApiKey, maxResults: _tavilyMaxResults } : null
     });
     
     // 保存所有文章

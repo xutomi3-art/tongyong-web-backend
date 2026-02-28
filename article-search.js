@@ -60,6 +60,38 @@ async function searchArticlesWithGoogle(keyword, apiKey, searchEngineId) {
   }
 }
 
+// 使用 Tavily API 搜索（优先，返回结构化内容）
+async function searchArticlesWithTavily(keyword, apiKey, maxResults = 5) {
+  try {
+    const query = `${keyword} 教育 AI 智能`;
+    const response = await axios.post(
+      'https://api.tavily.com/search',
+      {
+        api_key: apiKey,
+        query: query,
+        search_depth: 'advanced',
+        include_answer: false,
+        include_raw_content: true,
+        max_results: maxResults
+      },
+      { timeout: 15000 }
+    );
+    const results = response.data?.results || [];
+    // 将 Tavily 结果转换为统一格式
+    return results
+      .filter(r => r.raw_content && r.raw_content.length > 300)
+      .map(r => ({
+        url: r.url,
+        title: r.title || '',
+        content: r.raw_content || r.content || '',
+        length: (r.raw_content || r.content || '').length
+      }));
+  } catch (error) {
+    console.error('Tavily搜索失败:', error.message);
+    return [];
+  }
+}
+
 // 抓取文章内容
 async function fetchArticleContent(url) {
   try {
@@ -129,6 +161,27 @@ async function searchAndFetchArticles(keyword, config = {}) {
   try {
     console.log(`开始搜索关键词: ${keyword}`);
     
+    // 优先使用 Tavily API（配置了则直接返回结构化内容，无需再爬取）
+    if (config.tavilyConfig && config.tavilyConfig.apiKey) {
+      console.log("使用 Tavily API 搜索文章...");
+      const tavilyArticles = await searchArticlesWithTavily(
+        keyword,
+        config.tavilyConfig.apiKey,
+        config.tavilyConfig.maxResults || 5
+      );
+      if (tavilyArticles.length > 0) {
+        // 过滤已使用的 URL
+        const tavilyUrls = tavilyArticles.map(a => a.url);
+        const unusedUrls = await usedUrlsManager.filterUnusedUrls(tavilyUrls);
+        const unusedArticles = tavilyArticles.filter(a => unusedUrls.includes(a.url));
+        if (unusedArticles.length > 0) {
+          console.log(`Tavily 返回 ${unusedArticles.length} 篇未使用文章`);
+          return unusedArticles;
+        }
+      }
+      console.log("Tavily 未返回有效结果，降级到 Bing 爬取...");
+    }
+
     let urls = [];
     
     // 优先使用Google搜索（如果配置了API key）
