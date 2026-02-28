@@ -640,8 +640,14 @@
       </div>
     </div>
 
-    <!-- 状态提示 -->
-    <div id="statusMessage" class="hidden mt-6 p-4 rounded-lg"></div>
+    <!-- 状态提示（居中弹窗） -->
+    <div id="toastOverlay" style="display:none; position:fixed; inset:0; z-index:99999; pointer-events:none; display:flex; align-items:flex-start; justify-content:center; padding-top:80px;">
+      <div id="toastBox" style="pointer-events:auto; min-width:320px; max-width:480px; padding:16px 24px; border-radius:12px; box-shadow:0 8px 32px rgba(0,0,0,0.18); display:flex; align-items:flex-start; gap:12px; font-size:15px; font-weight:500; transition:all 0.3s ease; opacity:0; transform:translateY(-16px);">
+        <span id="toastIcon" style="font-size:20px; flex-shrink:0; margin-top:1px;"></span>
+        <span id="toastMsg" style="flex:1; line-height:1.5;"></span>
+        <button onclick="hideToast()" style="background:none; border:none; cursor:pointer; font-size:18px; opacity:0.5; margin-left:8px; padding:0; line-height:1;" title="关闭">×</button>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -1276,22 +1282,55 @@
     }
 
     // 显示状态消息
+    // ── 居中弹窗通知系统 ────────────────────────────────────────────
+    let _toastTimer = null;
     function showStatus(message, type) {
-      const statusEl = document.getElementById('statusMessage');
-      statusEl.textContent = message;
-      statusEl.className = `mt-6 p-4 rounded-lg ${
-        type === 'success' ? 'bg-green-100 text-green-800' :
-        type === 'error' ? 'bg-red-100 text-red-800' :
-        'bg-blue-100 text-blue-800'
-      }`;
-      statusEl.classList.remove('hidden');
-      
+      const overlay = document.getElementById('toastOverlay');
+      const box     = document.getElementById('toastBox');
+      const icon    = document.getElementById('toastIcon');
+      const msg     = document.getElementById('toastMsg');
+
+      // 图标 & 颜色
+      const styles = {
+        success: { bg: '#f0fdf4', border: '#86efac', color: '#166534', iconBg: '#dcfce7', ico: '✅' },
+        error:   { bg: '#fef2f2', border: '#fca5a5', color: '#991b1b', iconBg: '#fee2e2', ico: '❌' },
+        info:    { bg: '#eff6ff', border: '#93c5fd', color: '#1e40af', iconBg: '#dbeafe', ico: 'ℹ️'  },
+        warning: { bg: '#fffbeb', border: '#fcd34d', color: '#92400e', iconBg: '#fef3c7', ico: '⚠️' }
+      };
+      const s = styles[type] || styles.info;
+
+      icon.textContent = s.ico;
+      msg.textContent  = message;
+      box.style.background   = s.bg;
+      box.style.border       = `1.5px solid ${s.border}`;
+      box.style.color        = s.color;
+
+      overlay.style.display = 'flex';
+      // 触发动画
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          box.style.opacity   = '1';
+          box.style.transform = 'translateY(0)';
+        });
+      });
+
+      // 清除旧计时器
+      if (_toastTimer) clearTimeout(_toastTimer);
+
+      // info 类型不自动消失（等待操作完成后会被新消息替换）
       if (type !== 'info') {
-        setTimeout(() => {
-          statusEl.classList.add('hidden');
-        }, 5000);
+        _toastTimer = setTimeout(hideToast, type === 'error' ? 6000 : 4000);
       }
     }
+    function hideToast() {
+      const overlay = document.getElementById('toastOverlay');
+      const box     = document.getElementById('toastBox');
+      box.style.opacity   = '0';
+      box.style.transform = 'translateY(-16px)';
+      setTimeout(() => { overlay.style.display = 'none'; }, 300);
+      if (_toastTimer) { clearTimeout(_toastTimer); _toastTimer = null; }
+    }
+    // ────────────────────────────────────────────────────────────────
 
     // Unsplash相关函数
     async function testUnsplash() {
