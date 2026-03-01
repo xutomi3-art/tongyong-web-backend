@@ -75,10 +75,12 @@ async function getUnsplashImage(keyword) {
 }
 
 // 获取唯一图片（Unsplash → AI生成 → 本地图片）
-async function getUniqueArticleImage(keyword, imageConfig = null) {
+// recentImageUrls: 最近N篇文章已使用的图片URL列表，用于去重
+async function getUniqueArticleImage(keyword, imageConfig = null, recentImageUrls = []) {
   console.log(`\n获取文章配图: ${keyword}`);
   console.log(`imageConfig:`, imageConfig);
-  
+  console.log(`去重: 排除最近 ${recentImageUrls.length} 张已用图片`);
+
   // 方案1: 优先使用Unsplash（每张图片都不重复）
   if (imageConfig && imageConfig.unsplashApiKey) {
     console.log(`尝试使用Unsplash API: ${imageConfig.unsplashApiKey.substring(0, 10)}...`);
@@ -97,13 +99,13 @@ async function getUniqueArticleImage(keyword, imageConfig = null) {
       console.log(`Unsplash图片获取失败: ${error.message}，尝试备用方案`);
     }
   }
-  
+
   // 方案2: 备用 - AI生成图片
   if (imageConfig && imageConfig.useAI && imageConfig.apiKey) {
     try {
       const { OpenAI } = require('openai');
       const openai = new OpenAI({ apiKey: imageConfig.apiKey });
-      
+
       const imageResponse = await openai.images.generate({
         model: 'dall-e-3',
         prompt: `A professional, modern illustration about ${keyword} in education technology. Clean, minimalist design with blue and purple colors. Show AI and education elements in a harmonious way. NO text, NO logos, NO brand names, NO watermarks.`,
@@ -111,7 +113,7 @@ async function getUniqueArticleImage(keyword, imageConfig = null) {
         quality: 'standard',
         n: 1,
       });
-      
+
       console.log(`✓ 使用AI生成图片`);
       return {
         url: imageResponse.data[0].url,
@@ -121,14 +123,26 @@ async function getUniqueArticleImage(keyword, imageConfig = null) {
       console.log(`AI图片生成失败: ${error.message}，使用本地图片`);
     }
   }
-  
+
   // 方案3: 最后备用 - 本地图片（带去重）
-  const localImage = getLocalImage(keyword);
-  console.log(`✓ 使用本地图片: ${localImage}`);
-  return {
-    url: localImage,
-    source: 'local'
-  };
+  const usedSet = new Set(recentImageUrls);
+  // 先尝试按关键词匹配的图片
+  const preferredImage = getLocalImage(keyword);
+  if (!usedSet.has(preferredImage)) {
+    console.log(`✓ 使用本地图片: ${preferredImage}`);
+    return { url: preferredImage, source: 'local' };
+  }
+  // 关键词匹配的图片已被使用，从未使用的图片中随机选
+  const available = LOCAL_IMAGES.filter(img => !usedSet.has(img));
+  if (available.length > 0) {
+    const picked = available[Math.floor(Math.random() * available.length)];
+    console.log(`✓ 使用本地图片（去重后）: ${picked}`);
+    return { url: picked, source: 'local' };
+  }
+  // 所有本地图片都用过了，回退到随机选（总比报错好）
+  const fallback = LOCAL_IMAGES[Math.floor(Math.random() * LOCAL_IMAGES.length)];
+  console.log(`⚠️ 本地图片全部用过，随机回退: ${fallback}`);
+  return { url: fallback, source: 'local' };
 }
 
 // 使用LLM生成文章
@@ -193,13 +207,14 @@ async function generateArticleWithLLM(llmConfig, keyword, wordCount = 1000) {
 }
 
 // 生成AI原创文章
-async function generateArticle(llmConfig = null, imageConfig = null, dedupConfig = null, wordCount = 1000, seoKeywords = null) {
+// existingArticles: 现有文章数组，用于图片去重
+async function generateArticle(llmConfig = null, imageConfig = null, dedupConfig = null, wordCount = 1000, seoKeywords = null, existingArticles = []) {
   console.log('[generateArticle] 收到的imageConfig:', JSON.stringify(imageConfig));
+  console.log('[generateArticle] dedupConfig:', JSON.stringify(dedupConfig));
   const keyword = pickRandomKeyword(seoKeywords);
-  
+
   let articleData;
-  let imageUrl;
-  
+
   // 生成文章内容
   if (llmConfig && llmConfig.apiKey && llmConfig.apiEndpoint) {
     try {
@@ -213,7 +228,7 @@ async function generateArticle(llmConfig = null, imageConfig = null, dedupConfig
     try {
       const { OpenAI } = require('openai');
       const openai = new OpenAI();
-      
+
       const articleResponse = await openai.chat.completions.create({
         model: 'gpt-4.1-mini',
         messages: [
@@ -236,16 +251,23 @@ async function generateArticle(llmConfig = null, imageConfig = null, dedupConfig
         ],
         temperature: 0.8,
       });
-      
+
       articleData = JSON.parse(articleResponse.choices[0].message.content);
     } catch (error) {
       console.error('使用默认OpenAI失败:', error.message);
       articleData = generateDefaultArticle(keyword);
     }
   }
-  
+
+  // 构建最近已用图片列表（用于去重）
+  const window = dedupConfig?.deduplicationWindow || 5;
+  const enabled = dedupConfig?.enableImageDeduplication !== false;
+  const recentImageUrls = enabled
+    ? existingArticles.slice(0, window).map(a => a.imageUrl).filter(Boolean)
+    : [];
+
   // 生成图片（优先Unsplash，备用AI生成，最后本地图片）
-  const imageData = await getUniqueArticleImage(keyword, imageConfig);
+  const imageData = await getUniqueArticleImage(keyword, imageConfig, recentImageUrls);
   
   return {
     id: Date.now().toString(),

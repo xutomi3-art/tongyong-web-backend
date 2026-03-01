@@ -1934,7 +1934,7 @@
       // 以后端数据为准：查询当前管理员的 needsPasswordChange 字段
       try {
         const email = localStorage.getItem('adminEmail');
-        const resp = await fetchWithAuth();
+        const resp = await fetchWithAuth(`${API_BASE}/admin/admins`);
         const data = await resp.json();
         if (data.success && data.admins) {
           const me = data.admins.find(a => a.email === email);
