@@ -1055,6 +1055,7 @@ async function scheduleArticleGeneration() {
 }
 
 // 动态定时任务：每分钟检查是否到达配置的发布时间
+// 修复：增加 lastPublishDate 防重复机制 + 10分钟补发窗口（防止服务重启错过整点）
 cron.schedule('* * * * *', async function() {
   try {
     var cfg = await getConfig();
@@ -1067,8 +1068,23 @@ cron.schedule('* * * * *', async function() {
     var targetMinute = parseInt(parts[1], 10);
     
     var now = new Date();
-    if (now.getHours() === targetHour && now.getMinutes() === targetMinute) {
-      console.log("[定时发布] 到达发布时间 " + publishTime + "，开始生成文章...");
+    var todayStr = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
+    
+    // 防重复：今天已经发布过则跳过
+    var lastPublishDate = (cfg.seoConfig && cfg.seoConfig.lastPublishDate) ? cfg.seoConfig.lastPublishDate : null;
+    if (lastPublishDate === todayStr) return;
+    
+    // 计算当前时间与目标时间的分钟差（支持10分钟补发窗口，防止服务重启错过整点）
+    var nowMinutes = now.getHours() * 60 + now.getMinutes();
+    var targetMinutes = targetHour * 60 + targetMinute;
+    var diffMinutes = nowMinutes - targetMinutes;
+    
+    if (diffMinutes >= 0 && diffMinutes < 10) {
+      console.log("[定时发布] 到达发布时间 " + publishTime + "（延迟" + diffMinutes + "分钟），开始生成文章...");
+      // 先记录今天已发布，防止10分钟窗口内重复触发
+      if (!cfg.seoConfig) cfg.seoConfig = {};
+      cfg.seoConfig.lastPublishDate = todayStr;
+      await saveConfig(cfg);
       await scheduleArticleGeneration();
     }
   } catch (err) {
