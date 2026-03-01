@@ -5,9 +5,204 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>管理后台</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.tailwindcss.com/3.4.1/plugin/typography.min.js"></script>
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    }
+    /* ===== Article Prose Styles ===== */
+    .article-prose {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+      font-size: 16px;
+      line-height: 1.8;
+      color: #1f2937;
+    }
+    .article-prose h1 {
+      font-size: 2em;
+      font-weight: 700;
+      margin: 1.2em 0 0.6em;
+      color: #111827;
+      border-bottom: 2px solid #e5e7eb;
+      padding-bottom: 0.3em;
+    }
+    .article-prose h2 {
+      font-size: 1.5em;
+      font-weight: 700;
+      margin: 1.4em 0 0.6em;
+      color: #1e3a5f;
+      padding-left: 0.75em;
+      border-left: 4px solid #7c3aed;
+    }
+    .article-prose h3 {
+      font-size: 1.2em;
+      font-weight: 600;
+      margin: 1.2em 0 0.5em;
+      color: #374151;
+      padding-left: 0.5em;
+      border-left: 3px solid #a78bfa;
+    }
+    .article-prose p {
+      margin: 0.8em 0;
+      line-height: 1.85;
+    }
+    .article-prose strong {
+      font-weight: 700;
+      color: #111827;
+      background: linear-gradient(180deg, transparent 60%, #fef08a 60%);
+      padding: 0 2px;
+    }
+    .article-prose em {
+      font-style: italic;
+      color: #4b5563;
+    }
+    .article-prose ul {
+      list-style: none;
+      margin: 0.8em 0;
+      padding-left: 0;
+    }
+    .article-prose ul li {
+      position: relative;
+      padding-left: 1.5em;
+      margin: 0.4em 0;
+    }
+    .article-prose ul li::before {
+      content: '▸';
+      position: absolute;
+      left: 0;
+      color: #7c3aed;
+      font-size: 0.9em;
+    }
+    .article-prose ol {
+      list-style: none;
+      counter-reset: ol-counter;
+      margin: 0.8em 0;
+      padding-left: 0;
+    }
+    .article-prose ol li {
+      position: relative;
+      padding-left: 2em;
+      margin: 0.4em 0;
+      counter-increment: ol-counter;
+    }
+    .article-prose ol li::before {
+      content: counter(ol-counter);
+      position: absolute;
+      left: 0;
+      width: 1.4em;
+      height: 1.4em;
+      background: #7c3aed;
+      color: white;
+      border-radius: 50%;
+      font-size: 0.75em;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      top: 0.15em;
+    }
+    .article-prose blockquote {
+      border-left: 4px solid #7c3aed;
+      background: #f5f3ff;
+      margin: 1.2em 0;
+      padding: 0.8em 1.2em;
+      border-radius: 0 8px 8px 0;
+      color: #4b5563;
+      font-style: italic;
+    }
+    .article-prose blockquote p {
+      margin: 0;
+    }
+    .article-prose code {
+      background: #f3f4f6;
+      padding: 0.15em 0.4em;
+      border-radius: 4px;
+      font-size: 0.875em;
+      font-family: 'Fira Code', 'Cascadia Code', Consolas, monospace;
+      color: #7c3aed;
+    }
+    .article-prose pre {
+      background: #1f2937;
+      color: #f9fafb;
+      padding: 1em 1.2em;
+      border-radius: 8px;
+      overflow-x: auto;
+      margin: 1em 0;
+    }
+    .article-prose pre code {
+      background: none;
+      color: inherit;
+      padding: 0;
+    }
+    .article-prose a {
+      color: #7c3aed;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+    .article-prose a:hover {
+      color: #5b21b6;
+    }
+    .article-prose hr {
+      border: none;
+      border-top: 2px solid #e5e7eb;
+      margin: 2em 0;
+    }
+    .article-prose img {
+      max-width: 100%;
+      border-radius: 8px;
+      margin: 1em auto;
+      display: block;
+    }
+    .article-prose table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1em 0;
+    }
+    .article-prose th {
+      background: #7c3aed;
+      color: white;
+      padding: 0.6em 1em;
+      text-align: left;
+    }
+    .article-prose td {
+      padding: 0.5em 1em;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .article-prose tr:nth-child(even) td {
+      background: #f9fafb;
+    }
+    /* Modal styles */
+    .article-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 9999;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 2rem 1rem;
+      overflow-y: auto;
+    }
+    .article-modal-box {
+      background: white;
+      border-radius: 12px;
+      max-width: 860px;
+      width: 100%;
+      box-shadow: 0 25px 60px rgba(0,0,0,0.3);
+      overflow: hidden;
+      margin: auto;
+    }
+    .article-modal-header {
+      background: linear-gradient(135deg, #7c3aed, #2563eb);
+      color: white;
+      padding: 1.25rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .article-modal-body {
+      padding: 2rem;
+      max-height: 75vh;
+      overflow-y: auto;
     }
     .tab-button {
       transition: all 0.3s ease;
@@ -1211,31 +1406,36 @@
           return;
         }
         
-        listEl.innerHTML = articles.map(article => `
-          <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition">
-            <div class="flex items-start justify-between">
-              <div class="flex-1">
-                <h4 class="font-semibold text-gray-800 mb-2">${article.title}</h4>
-                <p class="text-sm text-gray-600 mb-2">${article.content.substring(0, 100)}...</p>
-                <div class="flex items-center space-x-4 text-sm text-gray-500">
-                  <span>🏷️ ${article.keyword}</span>
-                  <span>📅 ${new Date(article.createdAt).toLocaleDateString('zh-CN')}</span>
+        listEl.innerHTML = articles.map(article => {
+          const plainText = article.content.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+          const excerpt = plainText.substring(0, 120) + (plainText.length > 120 ? '...' : '');
+          const typeLabel = article.type === 'search_rewritten' ? '<span class="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-medium">🔄 搜索改写</span>' : '<span class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">✨ AI原创</span>';
+          return `
+          <div class="border border-gray-200 rounded-xl p-4 hover:shadow-md transition bg-white">
+            <div class="flex items-start gap-4">
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 mb-2 flex-wrap">
+                  ${typeLabel}
+                  <span class="text-xs text-gray-400">📅 ${new Date(article.createdAt).toLocaleDateString('zh-CN')}</span>
+                  ${article.keyword ? `<span class="text-xs text-gray-400">🏷️ ${article.keyword}</span>` : ''}
                 </div>
+                <h4 class="font-semibold text-gray-900 mb-2 leading-snug">${article.title}</h4>
+                <p class="text-sm text-gray-500 leading-relaxed">${excerpt}</p>
               </div>
-              <div class="ml-4">
-                <img src="${article.imageUrl}" alt="${article.title}" class="w-32 h-20 object-cover rounded">
-                ${article.imageSource === 'unsplash' && article.imageAuthor ? `
-                  <p class="text-xs text-gray-500 mt-1">
-                    Photo by <a href="${article.imageAuthorUrl}" target="_blank" class="text-blue-600 hover:underline">${article.imageAuthor}</a> on <a href="${article.imageUnsplashUrl}" target="_blank" class="text-blue-600 hover:underline">Unsplash</a>
-                  </p>
-                ` : ''}
-              </div>
+              ${article.imageUrl ? `<div class="flex-shrink-0">
+                <img src="${article.imageUrl}" alt="${article.title}" class="w-28 h-20 object-cover rounded-lg shadow-sm">
+              </div>` : ''}
             </div>
-            <div class="mt-3 flex justify-end space-x-2">
-              <button onclick="deleteArticle('${article.id}')" class="px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded">删除</button>
+            <div class="mt-3 pt-3 border-t border-gray-100 flex justify-between items-center">
+              <span class="text-xs text-gray-400">${article.content.length} 字</span>
+              <div class="flex gap-2">
+                <button onclick="previewArticle('${article.id}')" class="px-3 py-1 text-sm bg-purple-50 text-purple-700 hover:bg-purple-100 rounded-lg font-medium transition">👁 查看全文</button>
+                <button onclick="deleteArticle('${article.id}')" class="px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded-lg transition">🗑 删除</button>
+              </div>
             </div>
           </div>
-        `).join('');
+          `;
+        }).join('');
       } catch (error) {
         document.getElementById('articleList').innerHTML = 
           '<p class="text-red-500 text-center py-8">加载失败: ' + error.message + '</p>';
@@ -1313,6 +1513,56 @@
         showStatus('❌ 删除失败: ' + error.message, 'error');
       }
     }
+
+    // 文章预览 Modal
+    function previewArticle(id) {
+      const article = articles.find(a => a.id === id || String(a.id) === String(id));
+      if (!article) { showStatus('❌ 找不到该文章', 'error'); return; }
+
+      document.getElementById('articleModalTitle').textContent = article.title;
+
+      // Meta info
+      const typeLabel = article.type === 'search_rewritten'
+        ? '<span class="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-medium">🔄 搜索改写</span>'
+        : '<span class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">✨ AI原创</span>';
+      document.getElementById('articleModalMeta').innerHTML = `
+        ${typeLabel}
+        ${article.keyword ? `<span>🏷️ ${article.keyword}</span>` : ''}
+        <span>📅 ${new Date(article.createdAt).toLocaleDateString('zh-CN')}</span>
+        <span>📝 ${article.content.replace(/<[^>]+>/g,'').length} 字</span>
+        ${article.sourceUrl ? `<a href="${article.sourceUrl}" target="_blank" class="text-purple-600 hover:underline">🔗 原文链接</a>` : ''}
+      `;
+
+      // Cover image
+      if (article.imageUrl) {
+        document.getElementById('articleModalImage').innerHTML = `
+          <img src="${article.imageUrl}" alt="${article.title}" class="w-full max-h-72 object-cover rounded-xl shadow">
+          ${article.imageSource === 'unsplash' && article.imageAuthor ? `
+            <p class="text-xs text-gray-400 mt-1 text-center">Photo by <a href="${article.imageAuthorUrl}" target="_blank" class="hover:underline">${article.imageAuthor}</a> on Unsplash</p>
+          ` : ''}
+        `;
+      } else {
+        document.getElementById('articleModalImage').innerHTML = '';
+      }
+
+      // Article body
+      document.getElementById('articleModalContent').innerHTML = article.content;
+
+      document.getElementById('articlePreviewModal').style.display = 'flex';
+      document.getElementById('articlePreviewModal').scrollTop = 0;
+    }
+
+    function closeArticleModal(event) {
+      // Close only when clicking the overlay background itself
+      if (event.target === document.getElementById('articlePreviewModal')) {
+        document.getElementById('articlePreviewModal').style.display = 'none';
+      }
+    }
+
+    // Keyboard close
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') document.getElementById('articlePreviewModal').style.display = 'none';
+    });
 
     // 修改密码
     async function saveWebsiteUrl() {
@@ -1934,7 +2184,7 @@
       // 以后端数据为准：查询当前管理员的 needsPasswordChange 字段
       try {
         const email = localStorage.getItem('adminEmail');
-        const resp = await fetchWithAuth(`${API_BASE}/admin/admins`);
+        const resp = await fetchWithAuth();
         const data = await resp.json();
         if (data.success && data.admins) {
           const me = data.admins.find(a => a.email === email);
@@ -2037,5 +2287,24 @@
       <p style="text-align:center; font-size:12px; color:#9ca3af; margin-top:12px;">修改密码后方可正常使用后台</p>
     </div>
   </div>
+  <!-- 文章预览 Modal -->
+  <div id="articlePreviewModal" class="article-modal-overlay" style="display:none;" onclick="closeArticleModal(event)">
+    <div class="article-modal-box">
+      <div class="article-modal-header">
+        <div class="flex-1 pr-4">
+          <div class="text-xs text-purple-200 mb-1">文章预览</div>
+          <h2 id="articleModalTitle" class="text-lg font-bold leading-snug"></h2>
+        </div>
+        <button onclick="document.getElementById('articlePreviewModal').style.display='none'" 
+          class="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 text-white text-xl font-bold transition">&times;</button>
+      </div>
+      <div class="article-modal-body">
+        <div id="articleModalMeta" class="flex flex-wrap gap-3 mb-6 pb-4 border-b border-gray-100 text-sm text-gray-500"></div>
+        <div id="articleModalImage" class="mb-6"></div>
+        <div id="articleModalContent" class="article-prose"></div>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>
