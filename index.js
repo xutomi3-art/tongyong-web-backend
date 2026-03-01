@@ -614,9 +614,9 @@ app.post('/api/admin/invite', verifyToken, async (req, res) => {
       }
     });
     
-    const websiteUrl = brandConfig?.websiteUrl || 'https://kb.jotoai.com';
+    const websiteUrl = brandConfig?.websiteUrl || '';
     const brandName = brandConfig?.name || '管理后台';
-    const loginUrl = `${websiteUrl}/login.html`;
+    const loginUrl = websiteUrl ? `${websiteUrl}/login.html` : '（请在后台品牌配置中设置 websiteUrl）';
     
     await transporter.sendMail({
       from: emailConfig.from,

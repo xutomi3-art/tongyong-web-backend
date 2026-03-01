@@ -562,6 +562,24 @@
       <!-- 系统设置 -->
       <div id="tab-system" class="tab-content">
         <h2 class="text-2xl font-bold text-gray-800 mb-6">系统设置</h2>
+
+        <!-- 品牌与网站配置 -->
+        <div class="mb-6 p-6 bg-purple-50 rounded-lg">
+          <h3 class="text-lg font-semibold text-gray-800 mb-4">🌐 品牌与网站配置</h3>
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">网站域名 <span class="text-red-500">*</span></label>
+              <input type="text" id="websiteUrl" placeholder="https://example.com" 
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+              <p class="mt-1 text-xs text-gray-500">⚠️ 必填：用于邀请邮件、忘记密码邮件中的登录链接，格式如 https://example.com（不含末尾斜杠）</p>
+            </div>
+          </div>
+          <div class="mt-4 flex justify-end">
+            <button onclick="saveWebsiteUrl()" class="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-medium">
+              保存网站域名
+            </button>
+          </div>
+        </div>
         
         <div class="p-6 bg-gray-50 rounded-lg">
           <h3 class="text-lg font-semibold text-gray-800 mb-4">🔐 修改管理员密码</h3>
@@ -811,6 +829,7 @@
         document.getElementById('feishuAppId').value = config.feishuAppId || '';
         document.getElementById('feishuAppSecret').value = config.feishuAppSecret || '';
         document.getElementById('feishuTableUrl').value = config.feishuTableUrl || '';
+        if (document.getElementById('websiteUrl')) document.getElementById('websiteUrl').value = config.websiteUrl || '';
         document.getElementById('llmApiKey').value = config.llmApiKey || '';
         document.getElementById('llmApiEndpoint').value = config.llmApiEndpoint || '';
         document.getElementById('llmModel').value = config.llmModel || '';
@@ -1262,6 +1281,33 @@
     }
 
     // 修改密码
+    async function saveWebsiteUrl() {
+      const websiteUrl = document.getElementById('websiteUrl').value.trim();
+      if (!websiteUrl) {
+        showStatus('❌ 请填写网站域名，例如 https://example.com', 'error');
+        return;
+      }
+      if (!/^https?:\/\/.+/.test(websiteUrl)) {
+        showStatus('❌ 网站域名格式不正确，应以 http:// 或 https:// 开头', 'error');
+        return;
+      }
+      try {
+        const response = await fetchWithAuth(`${API_BASE}/admin/config`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ websiteUrl: websiteUrl.replace(/\/$/, '') })
+        });
+        const result = await response.json();
+        if (result.success) {
+          showStatus('✅ 网站域名已保存！', 'success');
+        } else {
+          showStatus('❌ 保存失败：' + (result.error || '未知错误'), 'error');
+        }
+      } catch (err) {
+        showStatus('❌ 保存失败：' + err.message, 'error');
+      }
+    }
+
     async function changePassword() {
       const current = document.getElementById('currentPassword').value;
       const newPass = document.getElementById('newPassword').value;

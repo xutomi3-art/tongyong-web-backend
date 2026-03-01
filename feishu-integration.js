@@ -105,7 +105,7 @@ async function syncToFeishuTable(config, data) {
       `https://open.feishu.cn/open-apis/bitable/v1/apps/${baseId}/tables/${sheetId}/records`,
       {
         fields: {
-          '网址': data.url || 'https://shanyue.jotoai.com',
+          '网址': data.url || '',
           '日期': data.timestamp || data.submittedAt || new Date().toISOString(),
           '姓名': data.name || '',
           '公司/学校/机构': data.school || data.company || '',
