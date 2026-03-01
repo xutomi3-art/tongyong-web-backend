@@ -817,8 +817,8 @@
         document.getElementById('unsplashApiKey').value = config.unsplashApiKey || '';
         document.getElementById('autoPostEnabled').checked = config.autoPostEnabled || false;
         document.getElementById('autoPostTime').value = config.autoPostTime || '09:00';
-        document.getElementById('aiArticleCount').value = (config.seoConfig?.aiArticleCount !== undefined ? config.seoConfig.aiArticleCount : (config.aiArticleCount !== undefined ? config.aiArticleCount : 1));
-        document.getElementById('articleWordCount').value = config.seoConfig?.articleWordCount || config.articleWordCount || 1000;
+        document.getElementById('aiArticleCount').value = config.aiArticleCount !== undefined ? config.aiArticleCount : 1;
+        document.getElementById('articleWordCount').value = config.articleWordCount || 1000;
         document.getElementById('rewriteArticleCount').value = config.rewriteArticleCount || 0;
         document.getElementById('autoPostInterval').value = config.autoPostInterval || 24;
         document.getElementById('enableSearchRewrite').checked = config.enableSearchRewrite || false;
@@ -875,7 +875,6 @@
         const data = {
           llmApiKey: document.getElementById('llmApiKey').value,
           llmApiEndpoint: document.getElementById('llmApiEndpoint').value,
-          unsplashApiKey: document.getElementById('unsplashApiKey').value,
           llmModel: document.getElementById('llmModel').value,
           unsplashApiKey: document.getElementById('unsplashApiKey').value
         };
@@ -982,7 +981,7 @@
       showStatus('⏳ 正在测试飞书 Webhook...', 'info');
       await saveMessageConfig();
       try {
-        const response = await fetchWithAuth(`${API_BASE}/admin/test-feishu-webhook`, {
+        const response = await fetchWithAuth(`${API_BASE}/admin/test-feishu-bot`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' }
         });
@@ -1020,8 +1019,29 @@
     // 测试LLM
     async function testLLM() {
       showStatus('⏳ 正在测试 LLM 连接...', 'info');
-      await saveAIConfig();
-      showStatus('✅ LLM 配置已保存', 'success');
+      try {
+        await saveAIConfig();
+        const apiKey = document.getElementById('llmApiKey').value;
+        const apiEndpoint = document.getElementById('llmApiEndpoint').value;
+        const model = document.getElementById('llmModel').value;
+        if (!apiKey || !apiEndpoint) {
+          showStatus('❌ 请先填写 API Key 和 API Endpoint', 'error');
+          return;
+        }
+        const response = await fetchWithAuth(`${API_BASE}/admin/test-llm`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ apiKey, apiEndpoint, model })
+        });
+        const result = await response.json();
+        if (result.success) {
+          showStatus('✅ LLM 连接测试成功！回复: ' + (result.response || result.message || '').substring(0, 100), 'success');
+        } else {
+          showStatus('❌ LLM 测试失败: ' + (result.message || '未知错误'), 'error');
+        }
+      } catch (error) {
+        showStatus('❌ LLM 测试失败: ' + error.message, 'error');
+      }
     }
 
     // 生成文章

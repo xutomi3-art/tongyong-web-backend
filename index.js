@@ -404,11 +404,11 @@ app.get('/api/admin/config', verifyToken, async (req, res) => {
     smtpPassword: config.emailConfig?.pass || '',
     smtpFrom: config.emailConfig?.from || '',
     
-    // 飞书配置
-    feishuWebhook: config.feishuConfig?.webhookUrl || '',
-    feishuAppId: config.feishuConfig?.appId || '',
-    feishuAppSecret: config.feishuConfig?.appSecret || '',
-    feishuTableUrl: config.feishuConfig?.tableUrl || '',
+    // 飞书配置（兼容根级别和嵌套结构）
+    feishuWebhook: config.feishuConfig?.webhookUrl || config.feishuWebhook || '',
+    feishuAppId: config.feishuConfig?.appId || config.feishuAppId || '',
+    feishuAppSecret: config.feishuConfig?.appSecret || config.feishuAppSecret || '',
+    feishuTableUrl: config.feishuConfig?.tableUrl || config.feishuTableUrl || '',
     
     // LLM配置
     llmApiKey: config.llmConfig?.apiKey || '',
@@ -431,6 +431,7 @@ app.get('/api/admin/config', verifyToken, async (req, res) => {
     rewriteArticleCount: config.seoConfig?.rewriteArticleCount || 0,
     enableSearchRewrite: config.seoConfig?.enableSearchRewrite || false,
     rewriteRounds: config.seoConfig?.rewriteRounds || 3,
+    articleWordCount: config.seoConfig?.articleWordCount || 1000,
     seoKeywords: config.seoConfig?.keywords || '',
     tavilyConfig: config.tavilyConfig || {},
     tavilyApiKey: config.tavilyConfig?.apiKey || '',
@@ -613,7 +614,7 @@ app.post('/api/admin/invite', verifyToken, async (req, res) => {
       }
     });
     
-    const websiteUrl = brandConfig?.websiteUrl || 'https://your-domain.com';
+    const websiteUrl = brandConfig?.websiteUrl || 'https://kb.jotoai.com';
     const brandName = brandConfig?.name || '管理后台';
     const loginUrl = `${websiteUrl}/login.html`;
     
@@ -681,9 +682,16 @@ app.post('/api/admin/remove', verifyToken, async (req, res) => {
 
 // 测试LLM API配置
 app.post('/api/admin/test-llm', verifyToken, async (req, res) => {
-  const { apiKey, apiEndpoint, model } = req.body;
-  const result = await testLLMConfig({ apiKey, apiEndpoint, model });
-  res.json(result);
+  try {
+    const { apiKey, apiEndpoint, model } = req.body || {};
+    if (!apiKey || !apiEndpoint) {
+      return res.json({ success: false, message: '请提供 API Key 和 API Endpoint' });
+    }
+    const result = await testLLMConfig({ apiKey, apiEndpoint, model });
+    res.json(result);
+  } catch (error) {
+    res.json({ success: false, message: error.message || '测试失败' });
+  }
 });
 
 // 获取文章列表
@@ -1920,53 +1928,5 @@ app.post('/api/admin/accept-invite', async (req, res) => {
 
 // ==================== 配置管理API ====================
 
-// 获取配置
-// Removed duplicate endpoint - using the one at line 341 instead
-
-// 更新配置
-app.post('/api/admin/config', verifyToken, (req, res) => {
-  try {
-    const updates = req.body;
-    
-    // 合并配置
-    if (updates.brandConfig) {
-      config.brandConfig = { ...config.brandConfig, ...updates.brandConfig };
-    }
-    
-    if (updates.emailConfig) {
-      config.emailConfig = { ...config.emailConfig, ...updates.emailConfig };
-    }
-    
-    if (updates.feishuConfig) {
-      config.feishuConfig = { ...config.feishuConfig, ...updates.feishuConfig };
-    }
-    
-    if (updates.llmConfig) {
-      config.llmConfig = { ...config.llmConfig, ...updates.llmConfig };
-    }
-    
-    if (updates.imageConfig) {
-      config.imageConfig = { ...config.imageConfig, ...updates.imageConfig };
-    }
-    
-    if (updates.seoConfig) {
-      config.seoConfig = { ...config.seoConfig, ...updates.seoConfig };
-    }
-    
-    // 保存到文件
-    fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
-    
-    res.json({
-      success: true,
-      message: '配置已更新',
-      config: config
-    });
-  } catch (error) {
-    console.error('Error updating config:', error);
-    res.status(500).json({
-      success: false,
-      message: '更新配置失败'
-    });
-  }
-});
+// Removed duplicate GET/POST config endpoints - using the ones defined earlier
 

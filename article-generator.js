@@ -169,7 +169,7 @@ async function generateArticleWithLLM(llmConfig, keyword, wordCount = 1000) {
           'Authorization': `Bearer ${llmConfig.apiKey}`,
           'Content-Type': 'application/json'
         },
-        timeout: 60000
+        timeout: 180000
       }
     );
     

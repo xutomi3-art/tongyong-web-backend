@@ -68,6 +68,26 @@ class UnsplashFetcher {
    */
   translateKeyword(keyword) {
     const translations = {
+      // 知识管理 & AI 相关
+      'RAG': 'RAG retrieval augmented generation AI',
+      '检索增强生成': 'retrieval augmented generation AI',
+      '企业知识库': 'enterprise knowledge base management',
+      '企业知识中台': 'enterprise knowledge platform AI',
+      '知识管理平台': 'knowledge management platform',
+      '智能知识库': 'intelligent knowledge base AI',
+      'AI知识管理': 'AI knowledge management technology',
+      '企业AI应用': 'enterprise AI application business',
+      '智能客服系统': 'intelligent customer service AI chatbot',
+      '知识图谱': 'knowledge graph technology',
+      '文档解析': 'document parsing AI technology',
+      '向量数据库': 'vector database AI search',
+      '语义搜索': 'semantic search AI technology',
+      '大语言模型': 'large language model LLM AI',
+      '自然语言处理': 'natural language processing NLP',
+      '机器学习': 'machine learning AI technology',
+      '深度学习': 'deep learning neural network',
+      '数据中台': 'data platform enterprise',
+      // 教育相关
       'AI阅卷': 'AI grading education technology',
       '智能批改': 'intelligent correction teaching',
       '自动阅卷系统': 'automatic grading system',
@@ -79,8 +99,25 @@ class UnsplashFetcher {
       '学情分析': 'student performance analysis',
       '个性化教学': 'personalized teaching'
     };
-    
-    return translations[keyword] || keyword;
+
+    // 精确匹配
+    if (translations[keyword]) {
+      return translations[keyword];
+    }
+
+    // 模糊匹配：检查关键词是否包含已知中文词
+    for (const [cn, en] of Object.entries(translations)) {
+      if (keyword.includes(cn) || cn.includes(keyword)) {
+        return en;
+      }
+    }
+
+    // 检测是否包含中文字符，如果是则返回通用英文关键词
+    if (/[\u4e00-\u9fa5]/.test(keyword)) {
+      return 'technology business digital AI';
+    }
+
+    return keyword;
   }
 
   /**
