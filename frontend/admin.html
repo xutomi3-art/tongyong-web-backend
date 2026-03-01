@@ -491,6 +491,38 @@
             </div>
           </div>
 
+          <!-- 改写提示词配置 -->
+          <div class="mb-6 p-4 bg-amber-50 border-2 border-amber-200 rounded-lg">
+            <div class="flex items-start mb-3">
+              <span class="text-2xl mr-2">📝</span>
+              <div class="flex-1">
+                <h4 class="text-base font-semibold text-gray-900">改写提示词（Rewrite Prompt）</h4>
+                <p class="mt-1 text-sm text-gray-600">自定义文章改写时使用的 AI 提示词。留空则使用内置的 SEO 优化默认提示词。支持以下占位符：</p>
+                <div class="mt-2 flex flex-wrap gap-2">
+                  <code class="px-2 py-0.5 bg-amber-100 text-amber-800 rounded text-xs font-mono">{{keyword}}</code>
+                  <span class="text-xs text-gray-500">关键词</span>
+                  <code class="px-2 py-0.5 bg-amber-100 text-amber-800 rounded text-xs font-mono">{{wordCount}}</code>
+                  <span class="text-xs text-gray-500">目标字数</span>
+                  <code class="px-2 py-0.5 bg-amber-100 text-amber-800 rounded text-xs font-mono">{{minWordCount}}</code>
+                  <span class="text-xs text-gray-500">最低字数</span>
+                  <code class="px-2 py-0.5 bg-amber-100 text-amber-800 rounded text-xs font-mono">{{content}}</code>
+                  <span class="text-xs text-gray-500">原文内容</span>
+                </div>
+              </div>
+            </div>
+            <div class="mt-3">
+              <div class="flex items-center justify-between mb-2">
+                <label class="block text-sm font-medium text-gray-700">提示词内容</label>
+                <button onclick="resetRewritePrompt()" class="px-3 py-1 text-xs bg-amber-100 text-amber-700 rounded hover:bg-amber-200 transition">
+                  🔄 恢复默认提示词
+                </button>
+              </div>
+              <textarea id="rewritePrompt" rows="12" placeholder="留空使用内置 SEO 默认提示词..."
+                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 font-mono text-sm resize-y"></textarea>
+              <p class="mt-1 text-xs text-gray-500">⚠️ 提示词中必须包含 <code class="font-mono">{{content}}</code> 占位符，否则 AI 将不知道要改写哪篇文章</p>
+            </div>
+          </div>
+
           <!-- 图片去重功能 -->
           <div class="mb-6 p-4 bg-blue-50 border-2 border-blue-200 rounded-lg">
             <div class="flex items-start mb-3">
@@ -844,6 +876,7 @@
         document.getElementById('tavilyApiKey').value = config.tavilyConfig?.apiKey || config.tavilyApiKey || '';
         document.getElementById('tavilyMaxResults').value = config.tavilyConfig?.maxResults || config.tavilyMaxResults || 5;
         document.getElementById('rewriteRounds').value = config.rewriteRounds || 3;
+        if (document.getElementById('rewritePrompt')) document.getElementById('rewritePrompt').value = config.rewritePrompt || '';
         document.getElementById('enableImageDeduplication').checked = config.enableImageDeduplication || false;
         document.getElementById('deduplicationWindow').value = config.deduplicationWindow || 5;
         document.getElementById('seoKeywords').value = config.seoKeywords || '';
@@ -935,7 +968,8 @@
           rewriteRounds: parseInt(document.getElementById('rewriteRounds').value) || 3,
           enableImageDeduplication: document.getElementById('enableImageDeduplication').checked,
           deduplicationWindow: parseInt(document.getElementById('deduplicationWindow').value) || 5,
-          seoKeywords: document.getElementById('seoKeywords').value
+          seoKeywords: document.getElementById('seoKeywords').value,
+          rewritePrompt: document.getElementById('rewritePrompt') ? document.getElementById('rewritePrompt').value : ''
         };
         
         const response = await fetchWithAuth(`${API_BASE}/admin/config`, {
@@ -1439,6 +1473,49 @@
       if (_toastTimer) { clearTimeout(_toastTimer); _toastTimer = null; }
     }
     // ────────────────────────────────────────────────────────────────
+
+    // 改写提示词默认内容
+    const DEFAULT_REWRITE_PROMPT = `你是一位专业的 SEO 内容写作专家，擅长将普通文章改写成高质量、对搜索引擎友好、读者喜爱的博客文章。
+
+请将以下原文改写成一篇 SEO 友好的原创博客文章，严格遵守以下要求：
+
+【内容要求】
+1. 围绕核心关键词“{{keyword}}”展开，自然地将关键词融入标题、小标题和正文中
+2. 保留原文的核心观点和有价値的信息，但用全新的表达方式重新组织
+3. 文章长度必须达到 {{wordCount}} 字以上（不少于 {{minWordCount}} 字），内容要充实、有深度
+4. 语言流畅自然，避免 AI 痕迹，使用更人性化、更有温度的表达
+5. 在文章开头（引言部分）直接给出核心答案或关键结论，方便读者快速获取信息
+
+【结构要求】
+6. 文章必须包含以下结构：
+   - 引言段落：用 1-2 段吸引读者，说明文章价値
+   - 3-5 个主要章节，每个章节有清晰的标题
+   - 每个章节下可以有 2-3 个子章节
+   - 结尾总结段落：概括要点，给出行动建议
+7. 每个段落控制在 2-4 句话，避免大段文字堆砂
+8. 适当使用列表来呈现步骤、特点或对比信息
+
+【格式要求】
+9. 直接输出 HTML 格式，不要使用 Markdown 语法（禁止使用 ###、**、- 等 Markdown 符号）
+10. 使用以下 HTML 标签：
+    - &lt;h2&gt; 用于主要章节标题（字体较大，醒目）
+    - &lt;h3&gt; 用于子章节标题
+    - &lt;p&gt; 用于正文段落
+    - &lt;strong&gt; 用于加粗重要关键词和核心概念（每个段落加粗 1-2 处）
+    - &lt;ul&gt; 和 &lt;li&gt; 用于无序列表
+    - &lt;ol&gt; 和 &lt;li&gt; 用于有序步骤列表
+11. 不要输出任何前缀说明、将内容包裹在 \`\`\`html 代码块中，直接输出 HTML 内容
+12. 不要包含 &lt;html&gt;、&lt;head&gt;、&lt;body&gt; 等完整页面标签，只输出文章正文 HTML
+
+原文内容：
+{{content}}`;
+
+    function resetRewritePrompt() {
+      if (confirm('确认恢复为内置默认 SEO 提示词？当前自定义提示词将被清空。')) {
+        document.getElementById('rewritePrompt').value = DEFAULT_REWRITE_PROMPT;
+        showStatus('✅ 已加载默认提示词，请点击“保存文章配置”保存', 'success');
+      }
+    }
 
     // Tavily 测试函数
     async function testTavily() {

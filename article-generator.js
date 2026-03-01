@@ -264,7 +264,7 @@ async function generateArticle(llmConfig = null, imageConfig = null, dedupConfig
 }
 
 // 生成搜索改写文章
-async function generateRewrittenArticle(llmConfig = null, imageConfig = null, rewriteRounds = 3, dedupConfig = null, seoKeywords = null, wordCount = 1000) {
+async function generateRewrittenArticle(llmConfig = null, imageConfig = null, rewriteRounds = 3, dedupConfig = null, seoKeywords = null, wordCount = 1000, rewritePrompt = null) {
   const keyword = pickRandomKeyword(seoKeywords);
   
   console.log(`\n========== 开始生成搜索改写文章 ==========`);
@@ -294,12 +294,14 @@ async function generateRewrittenArticle(llmConfig = null, imageConfig = null, re
     
     // 3. 深度改写文章
     console.log(`\n步骤3: 开始深度改写（${rewriteRounds}轮）...`);
+    if (rewritePrompt) console.log('[改写] 使用自定义改写提示词');
     const rewrittenData = await rewriteArticle(
       bestArticle.content,
       keyword,
       llmConfig,
       rewriteRounds,
-      wordCount
+      wordCount,
+      rewritePrompt
     );
     
     console.log(`\n改写完成！`);
@@ -347,7 +349,8 @@ async function generateArticles(config = {}) {
     enableImageDeduplication = false,
     deduplicationWindow = 5,
     wordCount = 1000,
-    seoKeywords = null
+    seoKeywords = null,
+    rewritePrompt = null
   } = config;
   
   // 构建去重配置对象
@@ -385,7 +388,7 @@ async function generateArticles(config = {}) {
     for (let i = 0; i < rewriteArticleCount; i++) {
       currentIndex++;
       console.log(`\n[${currentIndex}/${totalCount}] 生成搜索改写文章...`);
-      const rewrittenArticle = await generateRewrittenArticle(llmConfig, imageConfig, rewriteRounds, dedupConfig, seoKeywords, wordCount);
+      const rewrittenArticle = await generateRewrittenArticle(llmConfig, imageConfig, rewriteRounds, dedupConfig, seoKeywords, wordCount, rewritePrompt);
       articles.push(rewrittenArticle);
       console.log(`✓ 搜索改写文章生成完成: ${rewrittenArticle.title}`);
       

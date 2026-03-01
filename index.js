@@ -435,7 +435,8 @@ app.get('/api/admin/config', verifyToken, async (req, res) => {
     seoKeywords: config.seoConfig?.keywords || '',
     tavilyConfig: config.tavilyConfig || {},
     tavilyApiKey: config.tavilyConfig?.apiKey || '',
-    tavilyMaxResults: config.tavilyConfig?.maxResults || 5
+    tavilyMaxResults: config.tavilyConfig?.maxResults || 5,
+    rewritePrompt: config.seoConfig?.rewritePrompt || ''
   });
 });
 
@@ -493,7 +494,7 @@ app.post('/api/admin/config', verifyToken, async (req, res) => {
   }
   
   // 更新SEO配置
-  if (data.autoPostEnabled !== undefined || data.autoPostTime !== undefined || data.autoPostInterval !== undefined || data.postsPerDay !== undefined || data.aiArticleCount !== undefined || data.rewriteArticleCount !== undefined || data.enableSearchRewrite !== undefined || data.rewriteRounds !== undefined || data.seoKeywords !== undefined || data.articleWordCount !== undefined || data.tavilyApiKey !== undefined || data.tavilyMaxResults !== undefined) {
+  if (data.autoPostEnabled !== undefined || data.autoPostTime !== undefined || data.autoPostInterval !== undefined || data.postsPerDay !== undefined || data.aiArticleCount !== undefined || data.rewriteArticleCount !== undefined || data.enableSearchRewrite !== undefined || data.rewriteRounds !== undefined || data.seoKeywords !== undefined || data.articleWordCount !== undefined || data.tavilyApiKey !== undefined || data.tavilyMaxResults !== undefined || data.rewritePrompt !== undefined) {
     config.seoConfig = config.seoConfig || {};
     if (data.autoPostEnabled !== undefined) config.seoConfig.autoPublish = data.autoPostEnabled;
     if (data.autoPostTime !== undefined) config.seoConfig.publishTime = data.autoPostTime;
@@ -505,6 +506,7 @@ app.post('/api/admin/config', verifyToken, async (req, res) => {
     if (data.rewriteRounds !== undefined) config.seoConfig.rewriteRounds = data.rewriteRounds;
     if (data.seoKeywords !== undefined) config.seoConfig.keywords = data.seoKeywords;
     if (data.articleWordCount !== undefined) config.seoConfig.articleWordCount = data.articleWordCount;
+    if (data.rewritePrompt !== undefined) config.seoConfig.rewritePrompt = data.rewritePrompt;
     // Tavily 在线搜索配置
     if (data.tavilyApiKey !== undefined || data.tavilyMaxResults !== undefined) {
       config.tavilyConfig = config.tavilyConfig || {};
@@ -782,6 +784,7 @@ app.post('/api/admin/generate-rewrite-article', verifyToken, async (req, res) =>
     if (tavilyConfig) console.log('[改写文章] 使用 Tavily API 搜索');
     
     const seoKeywords = config.seoConfig?.keywords || config.seoKeywords || null;
+    const rewritePrompt = config.seoConfig?.rewritePrompt || null;
 
     // 使用 generateRewrittenArticle（已包含搜索+改写+配图完整流程）
     const { generateRewrittenArticle } = require('./article-generator');
@@ -790,7 +793,9 @@ app.post('/api/admin/generate-rewrite-article', verifyToken, async (req, res) =>
       imageConfig,
       rewriteRounds,
       { tavilyConfig, googleApiKey: config.googleApiKey, googleSearchEngineId: config.googleSearchEngineId },
-      seoKeywords
+      seoKeywords,
+      undefined, // wordCount - use default from config below
+      rewritePrompt
     );
     
     const articles = await getArticles();
@@ -1053,6 +1058,10 @@ async function scheduleArticleGeneration() {
     var _seoKeywords = config.seoConfig?.keywords || config.seoKeywords || null;
     console.log("[定时发布] SEO关键词:", _seoKeywords ? "已配置" : "未配置（使用默认）");
 
+    // 读取改写提示词配置
+    var _rewritePrompt = config.seoConfig?.rewritePrompt || null;
+    console.log("[定时发布] 改写提示词:", _rewritePrompt ? "自定义" : "默认");
+
     // 使用新的批量生成功能
     const newArticles = await generateArticles({
       llmConfig,
@@ -1063,6 +1072,7 @@ async function scheduleArticleGeneration() {
       rewriteArticleCount: _rewriteCount,
       wordCount: _wordCount,
       seoKeywords: _seoKeywords,
+      rewritePrompt: _rewritePrompt,
       tavilyConfig: _tavilyApiKey ? { apiKey: _tavilyApiKey, maxResults: _tavilyMaxResults } : null
     });
     
