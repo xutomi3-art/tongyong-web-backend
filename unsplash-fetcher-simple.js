@@ -2,14 +2,18 @@ const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 
+// 使用 __dirname 相对路径，避免硬编码服务器绝对路径
+const DEFAULT_DATA_DIR = path.join(__dirname, 'data');
+const DEFAULT_IMAGE_DIR = path.join(__dirname, 'public', 'images', 'articles', 'unsplash');
+
 /**
  * Unsplash图片获取器（简化版，只使用官方API）
  */
 class UnsplashFetcher {
   constructor(apiKey) {
     this.apiKey = apiKey;
-    this.dataDir = '/var/www/shanyue/server/data';
-    this.imageDir = '/var/www/shanyue/dist/images/articles/unsplash';
+    this.dataDir = DEFAULT_DATA_DIR;
+    this.imageDir = DEFAULT_IMAGE_DIR;
     this.usedImagesFile = path.join(this.dataDir, 'used-unsplash-images.json');
     
     // 确保目录存在
@@ -185,13 +189,17 @@ class UnsplashFetcher {
         console.log(`[Unsplash] 下载统计失败（不影响使用）: ${error.message}`);
       }
     }
-    
-    const webPath = `/images/articles/unsplash/${selectedImage.id}.jpg`;
+
+    // webPath: 相对于 public 目录的 web 路径
+    const publicDir = path.join(__dirname, 'public');
+    const webPath = localPath.startsWith(publicDir)
+      ? localPath.slice(publicDir.length).replace(/\\/g, '/')
+      : `/images/articles/unsplash/${selectedImage.id}.jpg`;
     
     console.log(`[Unsplash] ✓ 成功获取图片: ${webPath}`);
     
     // 添加UTM参数（Unsplash要求）
-    const authorUrl = `${selectedImage.user.links.html}?utm_source=shanyue_ai&utm_medium=referral`;
+    const authorUrl = `${selectedImage.user.links.html}?utm_source=app&utm_medium=referral`;
     
     return {
       id: selectedImage.id,
@@ -202,7 +210,7 @@ class UnsplashFetcher {
       keyword: keyword,
       author: selectedImage.user.name,
       authorUrl: authorUrl,
-      unsplashUrl: 'https://unsplash.com/?utm_source=shanyue_ai&utm_medium=referral'
+      unsplashUrl: 'https://unsplash.com/?utm_source=app&utm_medium=referral'
     };
   }
 
@@ -231,6 +239,22 @@ class UnsplashFetcher {
       console.error(`[Unsplash] 清空记录失败: ${error.message}`);
       return false;
     }
+  }
+
+  /**
+   * 获取已使用图片数量（静态方法，用于统计接口）
+   */
+  static async getUsedImageCount() {
+    try {
+      const usedImagesFile = path.join(DEFAULT_DATA_DIR, 'used-unsplash-images.json');
+      if (fs.existsSync(usedImagesFile)) {
+        const data = JSON.parse(fs.readFileSync(usedImagesFile, 'utf8'));
+        return (data.usedImages || []).length;
+      }
+    } catch (error) {
+      // ignore
+    }
+    return 0;
   }
 }
 

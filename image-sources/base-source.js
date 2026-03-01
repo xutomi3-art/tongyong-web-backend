@@ -3,12 +3,17 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
+// 使用 __dirname 相对路径，避免硬编码服务器绝对路径
+// 图片保存在后端项目根目录的 public/images/articles 下
+const DEFAULT_BASE_DIR = path.join(__dirname, '..', 'public', 'images', 'articles');
+const PUBLIC_DIR = path.join(__dirname, '..', 'public');
+
 /**
  * 图片源基类
  * 所有具体的图片源都继承自这个类
  */
 class BaseSource {
-  constructor(name, baseDir = '/var/www/shanyue/dist/images/articles') {
+  constructor(name, baseDir = DEFAULT_BASE_DIR) {
     this.name = name;
     this.baseDir = baseDir;
     this.sourceDir = path.join(baseDir, name.toLowerCase());
@@ -93,11 +98,17 @@ class BaseSource {
 
   /**
    * 将本地路径转换为Web路径
+   * 兼容任意部署路径，不依赖硬编码的 /var/www/shanyue/dist
    * @param {string} localPath - 本地文件路径
    * @returns {string}
    */
   toWebPath(localPath) {
-    return localPath.replace('/var/www/shanyue/dist', '');
+    // 优先使用 PUBLIC_DIR 替换
+    if (localPath.startsWith(PUBLIC_DIR)) {
+      return localPath.slice(PUBLIC_DIR.length).replace(/\\/g, '/');
+    }
+    // 兼容旧路径格式
+    return localPath.replace(/.*\/public/, '').replace(/\\/g, '/');
   }
 
   /**
