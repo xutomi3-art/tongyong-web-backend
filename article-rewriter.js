@@ -78,6 +78,83 @@ function markdownToHtml(text) {
 }
 
 /**
+ * 清洗 HTML 内容：去除文档级标签，只保留内容片段
+ */
+function cleanHtml(html) {
+  if (!html) return '';
+  let cleaned = html;
+  // 去除 ```html ... ``` 包裹
+  cleaned = cleaned.replace(/^```html\s*/i, '').replace(/\s*```$/, '').trim();
+  // 去除完整 HTML 文档结构标签
+  cleaned = cleaned.replace(/<\/?html[^>]*>/gi, '');
+  cleaned = cleaned.replace(/<head[\s\S]*?<\/head>/gi, '');
+  cleaned = cleaned.replace(/<\/?body[^>]*>/gi, '');
+  cleaned = cleaned.replace(/<!DOCTYPE[^>]*>/gi, '');
+  cleaned = cleaned.replace(/<meta[^>]*>/gi, '');
+  cleaned = cleaned.replace(/<title[^>]*>[\s\S]*?<\/title>/gi, '');
+  // 去除多余的空行
+  cleaned = cleaned.replace(/\n{3,}/g, '\n\n').trim();
+  // 确保段落文本被 <p> 包裹（处理裸文本块）
+  const lines = cleaned.split('\n');
+  const result = [];
+  let buffer = '';
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) {
+      if (buffer) {
+        result.push(`<p>${buffer}</p>`);
+        buffer = '';
+      }
+      continue;
+    }
+    // 已经是 HTML 标签开头的行直接保留
+    if (/^<(h[1-6]|p|ul|ol|li|div|blockquote|table|strong|em)[>\s]/i.test(trimmed) || /^<\/(h[1-6]|p|ul|ol|li|div|blockquote|table)>/i.test(trimmed)) {
+      if (buffer) {
+        result.push(`<p>${buffer}</p>`);
+        buffer = '';
+      }
+      result.push(trimmed);
+    } else {
+      // 裸文本，积累到 buffer
+      buffer += (buffer ? ' ' : '') + trimmed;
+    }
+  }
+  if (buffer) {
+    result.push(`<p>${buffer}</p>`);
+  }
+  let output = result.join('\n');
+  // 修复未闭合的标签
+  output = fixUnclosedTags(output);
+  return output;
+}
+
+/**
+ * 修复未闭合的 HTML 标签（p, h2, h3, li 等）
+ */
+function fixUnclosedTags(html) {
+  const tags = ['p', 'h1', 'h2', 'h3', 'h4', 'li', 'strong', 'em'];
+  let fixed = html;
+  for (const tag of tags) {
+    const openRe = new RegExp(`<${tag}[^>]*>`, 'gi');
+    const closeRe = new RegExp(`</${tag}>`, 'gi');
+    const opens = (fixed.match(openRe) || []).length;
+    const closes = (fixed.match(closeRe) || []).length;
+    if (opens > closes) {
+      // 找到没有对应闭合标签的开标签，在下一个块级标签前或末尾补上
+      const blockTags = 'h1|h2|h3|h4|h5|h6|p|ul|ol|div|blockquote|table';
+      const pattern = new RegExp(`(<${tag}[^>]*>)([\\s\\S]*?)(?=<(?:${blockTags})[>\\s/]|$)`, 'gi');
+      fixed = fixed.replace(pattern, (match, open, content) => {
+        if (!match.includes(`</${tag}>`)) {
+          return `${open}${content.trim()}</${tag}>`;
+        }
+        return match;
+      });
+    }
+  }
+  return fixed;
+}
+
+/**
  * 使用LLM改写文章
  * @param {string} originalArticle - 原始文章内容
  * @param {string} keyword - 关键词
@@ -106,7 +183,7 @@ async function rewriteArticle(originalArticle, keyword, llmConfig, rewriteRounds
       .replace(/\{\{minWordCount\}\}/g, Math.floor(wordCount * 0.9))
       .replace(/\{\{content\}\}/g, originalArticle);
 
-    const systemMessage = '你是一位专业的 SEO 内容写作专家，擅长改写文章并保持原创性。输出格式必须是 HTML，使用 <h2>、<h3>、<p>、<strong>、<ul>、<li> 等标签，不使用 Markdown。';
+    const systemMessage = '你是一位专业的 SEO 内容写作专家，擅长改写文章并保持原创性。输出格式必须是 HTML，使用 <h2>、<h3>、<p>、<strong>、<ul>、<li> 等标签，不使用 Markdown。不要输出 <html>、<head>、<body> 等文档级标签。';
 
     let rewrittenContent = '';
 
@@ -119,7 +196,7 @@ async function rewriteArticle(originalArticle, keyword, llmConfig, rewriteRounds
           ]
         : [
             { role: 'system', content: systemMessage },
-            { role: 'user', content: `请对以下文章进行第${round}轮深度改写，进一步提高原创性和可读性，同时确保 SEO 友好（关键词"${keyword}"自然融入标题和正文），输出为 HTML 格式（使用 <h2>、<h3>、<p>、<strong>、<ul>、<li> 等标签）：\n\n${rewrittenContent}` }
+            { role: 'user', content: `请对以下文章进行第${round}轮深度改写，进一步提高原创性和可读性，同时确保 SEO 友好（关键词"${keyword}"自然融入标题和正文），输出为 HTML 格式（使用 <h2>、<h3>、<p>、<strong>、<ul>、<li> 等标签），不要包含 <html>/<head>/<body> 等文档标签：\n\n${rewrittenContent}` }
           ];
 
       const response = await openai.chat.completions.create({
@@ -130,10 +207,11 @@ async function rewriteArticle(originalArticle, keyword, llmConfig, rewriteRounds
       });
 
       rewrittenContent = response.choices[0].message.content.trim();
-      // 去除可能的 ```html ... ``` 包裹
-      rewrittenContent = rewrittenContent.replace(/^```html\s*/i, '').replace(/\s*```$/, '').trim();
       console.log(`[改写] 第${round}轮完成，内容长度: ${rewrittenContent.length}`);
     }
+
+    // 清洗 HTML：去除文档级标签、代码块标记、修复未闭合标签
+    rewrittenContent = cleanHtml(rewrittenContent);
 
     // 兜底：如果 LLM 仍然返回了 Markdown，转换为 HTML
     if (!rewrittenContent.includes('<p>') && !rewrittenContent.includes('<h2>')) {
@@ -171,5 +249,6 @@ async function rewriteArticle(originalArticle, keyword, llmConfig, rewriteRounds
 module.exports = {
   rewriteArticle,
   markdownToHtml,
+  cleanHtml,
   DEFAULT_REWRITE_PROMPT
 };

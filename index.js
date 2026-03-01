@@ -193,7 +193,21 @@ async function generateArticle() {
   const wordCount = config.seoConfig?.articleWordCount ?? config.articleWordCount ?? 1000;
   const seoKeywords = config.seoConfig?.keywords || config.seoKeywords || null;
 
-  return await generateArticleNew(llmConfig, imageConfig, null, wordCount, seoKeywords);
+  // 获取已有文章用于图片去重
+  const fs = require('fs');
+  const path = require('path');
+  let existingArticles = [];
+  try {
+    const articlesFile = path.join(__dirname, 'data', 'articles.json');
+    if (fs.existsSync(articlesFile)) {
+      existingArticles = JSON.parse(fs.readFileSync(articlesFile, 'utf8'));
+    }
+  } catch (e) { /* ignore */ }
+  const dedupConfig = {
+    enableImageDeduplication: config.imageConfig?.enableDeduplication ?? config.enableDeduplication ?? false,
+    deduplicationWindow: config.imageConfig?.deduplicationWindow ?? config.deduplicationWindow ?? 5
+  };
+  return await generateArticleNew(llmConfig, imageConfig, dedupConfig, wordCount, seoKeywords, existingArticles);
 }
 
 
@@ -521,24 +535,38 @@ app.post('/api/admin/config', verifyToken, async (req, res) => {
 
 // 修改密码
 app.post('/api/admin/change-password', verifyToken, async (req, res) => {
-  const { email, oldPassword, newPassword } = req.body;
+  // 兼容前端两种字段名: oldPassword 或 currentPassword
+  const { email: bodyEmail, oldPassword, currentPassword, newPassword } = req.body;
+  const actualOldPassword = oldPassword || currentPassword;
+  // 如果前端没传 email，从 JWT token 中获取
+  const email = bodyEmail || req.user?.email;
   const config = await getConfig();
-  
+
   const admins = config.admins || [];
   const adminIndex = admins.findIndex(a => a.email === email);
-  
+
   if (adminIndex === -1) {
     return res.status(404).json({ success: false, message: '管理员不存在' });
   }
-  
-  if (admins[adminIndex].password !== oldPassword) {
+
+  // 支持 bcrypt hash 和明文两种格式的旧密码验证
+  const stored = admins[adminIndex].password;
+  let passwordMatch = false;
+  if (stored.startsWith('$2a$') || stored.startsWith('$2b$')) {
+    passwordMatch = await bcrypt.compare(actualOldPassword, stored);
+  } else {
+    passwordMatch = (stored === actualOldPassword);
+  }
+
+  if (!passwordMatch) {
     return res.status(401).json({ success: false, message: '旧密码错误' });
   }
-  
-  admins[adminIndex].password = newPassword;
+
+  // 新密码用 bcrypt 加密存储
+  admins[adminIndex].password = await bcrypt.hash(newPassword, 10);
   admins[adminIndex].needsPasswordChange = false;
   config.admins = admins;
-  
+
   await saveConfig(config);
   res.json({ success: true, message: '密码修改成功' });
 });
@@ -737,10 +765,17 @@ app.post('/api/admin/generate-article', verifyToken, async (req, res) => {
     console.log('[DEBUG] wordCount:', wordCount);
     console.log('[DEBUG] seoKeywords:', seoKeywords);
 
-    const article = await generateArticleNew(llmConfig, imageConfig, null, wordCount, seoKeywords);
-    const articles = await getArticles();
-    articles.unshift(article);
-    await saveArticles(articles);
+    // 获取已有文章用于图片去重
+    const existingArticles = await getArticles();
+    const dedupConfig = {
+      enableImageDeduplication: config.imageConfig?.enableDeduplication ?? config.enableDeduplication ?? false,
+      deduplicationWindow: config.imageConfig?.deduplicationWindow ?? config.deduplicationWindow ?? 5
+    };
+    console.log('[DEBUG] dedupConfig:', dedupConfig);
+
+    const article = await generateArticleNew(llmConfig, imageConfig, dedupConfig, wordCount, seoKeywords, existingArticles);
+    existingArticles.unshift(article);
+    await saveArticles(existingArticles);
     res.json({ success: true, article });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -779,12 +814,23 @@ app.post('/api/admin/generate-rewrite-article', verifyToken, async (req, res) =>
       ? config.tavilyConfig : null;
     
     const rewriteRounds = config.seoConfig?.rewriteRounds || config.rewriteRounds || 3;
-    
-    console.log('[改写文章] 开始生成，改写轮数:', rewriteRounds);
+    const wordCount = config.seoConfig?.articleWordCount ?? config.articleWordCount ?? 1000;
+
+    console.log('[改写文章] 开始生成，改写轮数:', rewriteRounds, '字数:', wordCount);
     if (tavilyConfig) console.log('[改写文章] 使用 Tavily API 搜索');
-    
+
     const seoKeywords = config.seoConfig?.keywords || config.seoKeywords || null;
     const rewritePrompt = config.seoConfig?.rewritePrompt || null;
+
+    // 获取已有文章用于图片去重
+    const existingArticles = await getArticles();
+    const dedupConfig2 = {
+      enableImageDeduplication: config.imageConfig?.enableDeduplication ?? config.enableDeduplication ?? false,
+      deduplicationWindow: config.imageConfig?.deduplicationWindow ?? config.deduplicationWindow ?? 5,
+      tavilyConfig,
+      googleApiKey: config.googleApiKey,
+      googleSearchEngineId: config.googleSearchEngineId
+    };
 
     // 使用 generateRewrittenArticle（已包含搜索+改写+配图完整流程）
     const { generateRewrittenArticle } = require('./article-generator');
@@ -792,15 +838,14 @@ app.post('/api/admin/generate-rewrite-article', verifyToken, async (req, res) =>
       llmConfig,
       imageConfig,
       rewriteRounds,
-      { tavilyConfig, googleApiKey: config.googleApiKey, googleSearchEngineId: config.googleSearchEngineId },
+      dedupConfig2,
       seoKeywords,
-      undefined, // wordCount - use default from config below
+      wordCount,
       rewritePrompt
     );
-    
-    const articles = await getArticles();
-    articles.unshift(article);
-    await saveArticles(articles);
+
+    existingArticles.unshift(article);
+    await saveArticles(existingArticles);
     
     res.json({ success: true, article });
   } catch (error) {
