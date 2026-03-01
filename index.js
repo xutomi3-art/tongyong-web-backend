@@ -28,6 +28,8 @@ app.use(express.json());
 
 // 静态文件服务 - 托管前端管理界面
 app.use('/admin', express.static(path.join(__dirname, 'frontend')));
+// 静态文件服务 - 托管下载的图片
+app.use('/images', express.static(path.join(__dirname, 'public', 'images')));
 
 // 确保数据目录存在
 async function ensureDataDir() {
@@ -189,8 +191,9 @@ async function generateArticle() {
   };
   
   const wordCount = config.seoConfig?.articleWordCount ?? config.articleWordCount ?? 1000;
-  
-  return await generateArticleNew(llmConfig, imageConfig, null, wordCount);
+  const seoKeywords = config.seoConfig?.keywords || config.seoKeywords || null;
+
+  return await generateArticleNew(llmConfig, imageConfig, null, wordCount, seoKeywords);
 }
 
 
@@ -293,10 +296,14 @@ app.post('/api/admin/login', async (req, res) => {
   const { email, password } = req.body;
   const config = await getConfig();
   
-  // 支持新的admins数组格式
-  const admins = config.admins || [];
+  // 支持新的admins数组格式，兼容旧的adminUsername/adminPassword格式
+  let admins = config.admins || [];
+  if (admins.length === 0 && config.adminPassword) {
+    // 兼容旧格式：用adminUsername或email字段匹配
+    admins = [{ email: email, password: config.adminPassword, name: config.adminUsername || 'admin', role: 'admin' }];
+  }
   const admin = admins.find(a => a.email === email);
-  
+
   if (!admin) {
     return res.status(401).json({ success: false, message: '邮箱或密码错误' });
   }
@@ -713,11 +720,14 @@ app.post('/api/admin/generate-article', verifyToken, async (req, res) => {
     // 准备字数配置
     const wordCount = config.seoConfig?.articleWordCount ?? config.articleWordCount ?? 1000;
     
+    const seoKeywords = config.seoConfig?.keywords || config.seoKeywords || null;
+
     console.log('[DEBUG] config.unsplashApiKey:', config.unsplashApiKey);
     console.log('[DEBUG] imageConfig:', imageConfig);
     console.log('[DEBUG] wordCount:', wordCount);
-    
-    const article = await generateArticle(llmConfig, imageConfig, null, wordCount);
+    console.log('[DEBUG] seoKeywords:', seoKeywords);
+
+    const article = await generateArticleNew(llmConfig, imageConfig, null, wordCount, seoKeywords);
     const articles = await getArticles();
     articles.unshift(article);
     await saveArticles(articles);
@@ -763,13 +773,16 @@ app.post('/api/admin/generate-rewrite-article', verifyToken, async (req, res) =>
     console.log('[改写文章] 开始生成，改写轮数:', rewriteRounds);
     if (tavilyConfig) console.log('[改写文章] 使用 Tavily API 搜索');
     
+    const seoKeywords = config.seoConfig?.keywords || config.seoKeywords || null;
+
     // 使用 generateRewrittenArticle（已包含搜索+改写+配图完整流程）
     const { generateRewrittenArticle } = require('./article-generator');
     const article = await generateRewrittenArticle(
       llmConfig,
       imageConfig,
       rewriteRounds,
-      { tavilyConfig, googleApiKey: config.googleApiKey, googleSearchEngineId: config.googleSearchEngineId }
+      { tavilyConfig, googleApiKey: config.googleApiKey, googleSearchEngineId: config.googleSearchEngineId },
+      seoKeywords
     );
     
     const articles = await getArticles();
@@ -1028,6 +1041,10 @@ async function scheduleArticleGeneration() {
     var _wordCount = (config.seoConfig && config.seoConfig.articleWordCount) ? config.seoConfig.articleWordCount : (config.articleWordCount || 1000);
     console.log("[定时发布] 目标字数:", _wordCount);
     
+    // 读取 SEO 关键词配置
+    var _seoKeywords = config.seoConfig?.keywords || config.seoKeywords || null;
+    console.log("[定时发布] SEO关键词:", _seoKeywords ? "已配置" : "未配置（使用默认）");
+
     // 使用新的批量生成功能
     const newArticles = await generateArticles({
       llmConfig,
@@ -1037,6 +1054,7 @@ async function scheduleArticleGeneration() {
       aiArticleCount: _aiCount,
       rewriteArticleCount: _rewriteCount,
       wordCount: _wordCount,
+      seoKeywords: _seoKeywords,
       tavilyConfig: _tavilyApiKey ? { apiKey: _tavilyApiKey, maxResults: _tavilyMaxResults } : null
     });
     

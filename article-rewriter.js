@@ -46,7 +46,7 @@ function markdownToHtml(text) {
  * @param {number} rewriteRounds - 改写轮数（默认3轮）
  * @returns {Promise<Object>} 改写后的文章数据
  */
-async function rewriteArticle(originalArticle, keyword, llmConfig, rewriteRounds = 3) {
+async function rewriteArticle(originalArticle, keyword, llmConfig, rewriteRounds = 3, wordCount = 1000) {
   try {
     if (!llmConfig || !llmConfig.apiKey) {
       throw new Error('LLM配置不完整');

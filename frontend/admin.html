@@ -697,7 +697,7 @@
     function checkAuth() {
       const token = localStorage.getItem('adminToken');
       if (!token) {
-        window.location.href = '/login.html';
+        window.location.href = '/admin/login.html';
         return false;
       }
       return token;
@@ -714,7 +714,7 @@
     async function fetchWithAuth(url, options = {}) {
       const token = localStorage.getItem('adminToken');
       if (!token) {
-        window.location.href = '/login.html';
+        window.location.href = '/admin/login.html';
         throw new Error('未登录');
       }
       
@@ -728,7 +728,7 @@
       // 如果返回401，说明token无效
       if (response.status === 401) {
         localStorage.removeItem('adminToken');
-        window.location.href = '/login.html';
+        window.location.href = '/admin/login.html';
         throw new Error('登录已过期');
       }
       
@@ -1284,7 +1284,7 @@
     function logout() {
       if (confirm('确定要退出登录吗？')) {
         localStorage.removeItem('adminToken');
-        window.location.href = '/login.html';
+        window.location.href = '/admin/login.html';
       }
     }
 

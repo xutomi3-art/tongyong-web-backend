@@ -4,19 +4,36 @@ const { searchAndFetchArticles, selectBestArticle } = require('./article-search'
 const { rewriteArticle } = require('./article-rewriter');
 const { UnsplashFetcher } = require('./unsplash-fetcher-simple');
 
-// SEO关键词列表
-const KEYWORDS = [
-  'AI阅卷',
-  '智能批改',
-  '自动阅卷系统',
-  '教育AI',
-  '智能教育',
-  '作业批改',
-  '试卷分析',
-  '教学评估',
-  '学情分析',
-  '个性化教学'
+// 默认SEO关键词列表（仅在未配置时使用）
+const DEFAULT_KEYWORDS = [
+  'RAG',
+  '检索增强生成',
+  '企业知识库',
+  '企业知识中台',
+  '知识管理平台',
+  '智能知识库',
+  'AI知识管理',
+  '企业AI应用',
+  '智能客服系统',
+  '知识图谱'
 ];
+
+// 解析关键词字符串为数组
+function parseKeywords(keywordsInput) {
+  if (Array.isArray(keywordsInput) && keywordsInput.length > 0) {
+    return keywordsInput;
+  }
+  if (typeof keywordsInput === 'string' && keywordsInput.trim()) {
+    return keywordsInput.split(/[,，、\n]+/).map(k => k.trim()).filter(k => k);
+  }
+  return DEFAULT_KEYWORDS;
+}
+
+// 从关键词列表中随机选择一个
+function pickRandomKeyword(keywords) {
+  const list = parseKeywords(keywords);
+  return list[Math.floor(Math.random() * list.length)];
+}
 
 // 本地图片库
 const LOCAL_IMAGES = [
@@ -129,14 +146,14 @@ async function generateArticleWithLLM(llmConfig, keyword, wordCount = 1000) {
         messages: [
           {
             role: 'system',
-            content: '你是一个专业的教育科技内容创作者，擅长撰写关于AI教育、智能阅卷等主题的SEO优化文章。请严格按照要求的字数生成文章，不得少于要求字数的90%，内容要充实详细。'
+            content: '你是一个专业的内容创作者，擅长撰写SEO优化文章。请严格按照要求的字数生成文章，不得少于要求字数的90%，内容要充实详细。'
           },
           {
             role: 'user',
             content: `请写一篇关于"${keyword}"的SEO文章，要求：
 1. 字数必须达到${wordCount}字以上（不少于${Math.floor(wordCount * 0.9)}字），内容要充实，多举例说明
 2. 包含吸引人的标题
-3. 内容专业、实用，适合教育工作者阅读
+3. 内容专业、实用，适合目标读者阅读
 4. 自然融入关键词"${keyword}"
 5. 包含实际应用场景和案例
 6. **重要**：文章必须分段，每段3-5句话，段落之间用空行分隔，至少8-10个段落
@@ -176,9 +193,9 @@ async function generateArticleWithLLM(llmConfig, keyword, wordCount = 1000) {
 }
 
 // 生成AI原创文章
-async function generateArticle(llmConfig = null, imageConfig = null, dedupConfig = null, wordCount = 1000) {
+async function generateArticle(llmConfig = null, imageConfig = null, dedupConfig = null, wordCount = 1000, seoKeywords = null) {
   console.log('[generateArticle] 收到的imageConfig:', JSON.stringify(imageConfig));
-  const keyword = KEYWORDS[Math.floor(Math.random() * KEYWORDS.length)];
+  const keyword = pickRandomKeyword(seoKeywords);
   
   let articleData;
   let imageUrl;
@@ -202,14 +219,14 @@ async function generateArticle(llmConfig = null, imageConfig = null, dedupConfig
         messages: [
           {
             role: 'system',
-            content: '你是一个专业的教育科技内容创作者，擅长撰写关于AI教育、智能阅卷等主题的SEO优化文章。'
+            content: '你是一个专业的内容创作者，擅长撰写SEO优化文章。'
           },
           {
             role: 'user',
             content: `请写一篇关于"${keyword}"的SEO文章，要求：
 1. 字数约${wordCount}字（误差±10%）
 2. 包含吸引人的标题
-3. 内容专业、实用，适合教育工作者阅读
+3. 内容专业、实用，适合目标读者阅读
 4. 自然融入关键词"${keyword}"
 5. 包含实际应用场景和案例
 6. **重要**：文章必须分段，每段3-5句话，段落之间用空行分隔
@@ -247,8 +264,8 @@ async function generateArticle(llmConfig = null, imageConfig = null, dedupConfig
 }
 
 // 生成搜索改写文章
-async function generateRewrittenArticle(llmConfig = null, imageConfig = null, rewriteRounds = 3, dedupConfig = null) {
-  const keyword = KEYWORDS[Math.floor(Math.random() * KEYWORDS.length)];
+async function generateRewrittenArticle(llmConfig = null, imageConfig = null, rewriteRounds = 3, dedupConfig = null, seoKeywords = null, wordCount = 1000) {
+  const keyword = pickRandomKeyword(seoKeywords);
   
   console.log(`\n========== 开始生成搜索改写文章 ==========`);
   console.log(`关键词: ${keyword}`);
@@ -261,7 +278,7 @@ async function generateRewrittenArticle(llmConfig = null, imageConfig = null, re
     
     if (!articles || articles.length === 0) {
       console.log('未找到相关文章，回退到AI原创生成');
-      return await generateArticle(llmConfig, imageConfig);
+      return await generateArticle(llmConfig, imageConfig, null, wordCount, seoKeywords);
     }
     
     // 2. 选择最佳文章
@@ -281,7 +298,8 @@ async function generateRewrittenArticle(llmConfig = null, imageConfig = null, re
       bestArticle.content,
       keyword,
       llmConfig,
-      rewriteRounds
+      rewriteRounds,
+      wordCount
     );
     
     console.log(`\n改写完成！`);
@@ -313,7 +331,7 @@ async function generateRewrittenArticle(llmConfig = null, imageConfig = null, re
   } catch (error) {
     console.error('搜索改写失败:', error.message);
     console.log('回退到AI原创生成');
-    return await generateArticle(llmConfig, imageConfig);
+    return await generateArticle(llmConfig, imageConfig, null, 1000, seoKeywords);
   }
 }
 
@@ -328,7 +346,8 @@ async function generateArticles(config = {}) {
     rewriteArticleCount = 0,
     enableImageDeduplication = false,
     deduplicationWindow = 5,
-    wordCount = 1000
+    wordCount = 1000,
+    seoKeywords = null
   } = config;
   
   // 构建去重配置对象
@@ -351,7 +370,7 @@ async function generateArticles(config = {}) {
   for (let i = 0; i < aiArticleCount; i++) {
     currentIndex++;
     console.log(`\n[${currentIndex}/${totalCount}] 生成AI原创文章...`);
-    const aiArticle = await generateArticle(llmConfig, imageConfig, dedupConfig, wordCount);
+    const aiArticle = await generateArticle(llmConfig, imageConfig, dedupConfig, wordCount, seoKeywords);
     articles.push(aiArticle);
     console.log(`✓ AI原创文章生成完成: ${aiArticle.title}`);
     
@@ -366,7 +385,7 @@ async function generateArticles(config = {}) {
     for (let i = 0; i < rewriteArticleCount; i++) {
       currentIndex++;
       console.log(`\n[${currentIndex}/${totalCount}] 生成搜索改写文章...`);
-      const rewrittenArticle = await generateRewrittenArticle(llmConfig, imageConfig, rewriteRounds, dedupConfig);
+      const rewrittenArticle = await generateRewrittenArticle(llmConfig, imageConfig, rewriteRounds, dedupConfig, seoKeywords, wordCount);
       articles.push(rewrittenArticle);
       console.log(`✓ 搜索改写文章生成完成: ${rewrittenArticle.title}`);
       

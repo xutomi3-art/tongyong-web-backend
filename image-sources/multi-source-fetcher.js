@@ -1,8 +1,5 @@
-const path = require('path');
 const fs = require('fs');
-
-// 使用 __dirname 相对路径，避免硬编码服务器绝对路径
-const DEFAULT_DATA_DIR = path.join(__dirname, '..', 'data');
+const path = require('path');
 const { UnsplashSource } = require('./unsplash-source');
 const { PexelsSource } = require('./pexels-source');
 const { PixabaySource } = require('./pixabay-source');
@@ -15,7 +12,7 @@ const { StockSnapSource } = require('./stocksnap-source');
 class MultiSourceFetcher {
   constructor(config = {}) {
     this.config = config;
-    this.dataDir = config.dataDir || DEFAULT_DATA_DIR;
+    this.dataDir = config.dataDir || path.join(__dirname, '..', 'data');
     this.usedImagesFile = path.join(this.dataDir, 'used-images.json');
     
     // 初始化图片源（按优先级排序）

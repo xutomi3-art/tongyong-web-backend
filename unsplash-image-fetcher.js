@@ -3,11 +3,6 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-// 使用 __dirname 相对路径，避免硬编码服务器绝对路径
-const DEFAULT_DATA_DIR = path.join(__dirname, 'data');
-const DEFAULT_IMAGE_DIR = path.join(__dirname, 'public', 'images', 'articles', 'unsplash');
-const PUBLIC_DIR = path.join(__dirname, 'public');
-
 /**
  * Unsplash 图片获取器
  * 负责从 Unsplash 获取唯一的、未使用过的图片
@@ -15,8 +10,8 @@ const PUBLIC_DIR = path.join(__dirname, 'public');
 class UnsplashImageFetcher {
   constructor(accessKey = null) {
     this.accessKey = accessKey || process.env.UNSPLASH_ACCESS_KEY;
-    this.usedIdsFile = path.join(DEFAULT_DATA_DIR, 'used-unsplash-ids.json');
-    this.imageDir = DEFAULT_IMAGE_DIR;
+    this.usedIdsFile = path.join(__dirname, 'data', 'used-unsplash-ids.json');
+    this.imageDir = path.join(__dirname, 'public', 'images', 'articles', 'unsplash');
     this.usedIds = new Set();
     this.loadUsedIds();
     this.ensureImageDir();
@@ -206,7 +201,7 @@ class UnsplashImageFetcher {
       return {
         id: selectedImage.id,
         localPath: localPath,
-        webPath: localPath.startsWith(PUBLIC_DIR) ? localPath.slice(PUBLIC_DIR.length).replace(/\\/g, '/') : localPath.replace(/.*\/public/, '').replace(/\\/g, '/'),
+        webPath: localPath.replace(path.join(__dirname, 'public'), ''),
         source: 'unsplash'
       };
     } catch (error) {
