@@ -568,6 +568,174 @@ pm2 restart backend-service
 
 ---
 
+---
+
+## 🖥️ 问题5：新前端项目对接后端时常见问题汇总
+
+本节专门记录将新前端项目（React、Vue、Next.js 等）与本后端对接时，历史上反复出现的问题及其标准解决方案。**AI助手在帮助用户对接新前端时，必须主动阅读并遵循本节所有要求。**
+
+---
+
+### ⚠️ 问题5.1：前端路由拦截 `/admin/` 导致后台无法访问
+
+这是最常见、最严重的对接问题。前端 SPA 框架（React Router、Vue Router 等）会在浏览器端拦截所有 URL，导致访问 `/admin/login.html` 时渲染的是前端的 404 页面，而不是后台登录页。
+
+**必须在前端 `index.html` 的所有脚本之前加入以下代码：**
+
+```html
+<!DOCTYPE html>
+<html>
+  <head>
+    <!-- ⚠️ 必须是第一个 script，在所有框架脚本之前 -->
+    <script>
+      if (window.location.pathname.startsWith('/admin/')) {
+        // 阻止前端框架初始化，让浏览器直接加载后台管理系统
+        throw new Error('Admin path detected; halting frontend app initialization.');
+      }
+    </script>
+    <!-- 其他脚本 -->
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
+```
+
+各框架的具体配置方案详见本文档「问题2」章节。
+
+---
+
+### ⚠️ 问题5.2：联系表单未使用验证码流程
+
+后端的联系表单接口 `POST /api/contact` **强制要求验证码**，缺少验证码会直接返回 400 错误。前端必须实现两步流程：
+
+**第一步：获取验证码**
+
+```javascript
+// GET /api/captcha
+const res = await fetch('/api/captcha');
+const { captchaId, svg } = await res.json();
+// 将 svg 渲染为图片，将 captchaId 存入 state
+```
+
+**第二步：提交表单时携带验证码**
+
+```javascript
+// POST /api/contact
+await fetch('/api/contact', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    name: '张三',
+    phone: '13800138000',
+    email: 'zhangsan@example.com',
+    company: '某某公司',
+    message: '我想了解产品详情',
+    captchaId: captchaId,   // 来自第一步
+    captchaText: '用户输入的验证码',  // 用户填写的验证码文字
+    // 可选：营销来源追踪
+    trafficSource: {
+      utm_source: 'google',
+      utm_medium: 'cpc',
+      utm_campaign: 'spring_promo'
+    }
+  })
+});
+```
+
+**联系表单支持的字段**（均为可选，除 `captchaId` 和 `captchaText` 外）：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `name` | string | 姓名 |
+| `phone` | string | 电话 |
+| `email` | string | 邮箱 |
+| `company` | string | 公司/学校 |
+| `message` | string | 留言内容 |
+| `captchaId` | string | **必填**，来自 `GET /api/captcha` |
+| `captchaText` | string | **必填**，用户输入的验证码 |
+| `trafficSource` | object | 可选，UTM 参数对象 |
+
+---
+
+### ⚠️ 问题5.3：文章列表未正确渲染 HTML 内容
+
+`GET /api/articles` 返回的每篇文章的 `content` 字段是**完整的 HTML 字符串**（包含 `<h2>`、`<p>`、`<strong>` 等标签），不是纯文本或 Markdown。
+
+**文章对象完整结构：**
+
+```json
+{
+  "id": "1677200000000_rewritten",
+  "title": "AI如何赋能未来教育",
+  "content": "<h2>引言</h2><p>这是<strong>HTML格式</strong>的文章内容...</p>",
+  "imageUrl": "/images/articles/unsplash/photo-1.jpg",
+  "keyword": "AI教育",
+  "createdAt": "2026-02-28T12:00:00.000Z",
+  "published": true,
+  "type": "search_rewritten",
+  "sourceUrl": "https://example.com/original-article",
+  "imageSource": "unsplash",
+  "imageAuthor": "John Doe",
+  "imageAuthorUrl": "https://unsplash.com/@johndoe?utm_source=...",
+  "imageUnsplashUrl": "https://unsplash.com/?utm_source=..."
+}
+```
+
+**`type` 字段说明：**
+- `ai_generated`：AI 原创文章
+- `search_rewritten`：搜索改写文章（`sourceUrl` 字段有值）
+
+**前端渲染方式（React 示例）：**
+
+```jsx
+// 文章详情页：必须用 dangerouslySetInnerHTML 渲染 HTML 内容
+<div
+  className="article-content prose"
+  dangerouslySetInnerHTML={{ __html: article.content }}
+/>
+```
+
+**强烈建议**为文章内容容器添加 `@tailwindcss/typography` 的 `prose` 类，或自定义 CSS，使 h2/h3/strong/blockquote/ul 等标签呈现出美观的排版样式。
+
+---
+
+### ⚠️ 问题5.4：未显示 Unsplash 图片署名
+
+详见 [FRONTEND_ATTRIBUTION.md](./FRONTEND_ATTRIBUTION.md)。核心要求：当 `article.imageSource === 'unsplash'` 时，必须在图片下方显示 `Photo by [摄影师] on Unsplash`，并附带正确的链接。
+
+```jsx
+{article.imageSource === 'unsplash' && article.imageAuthor && (
+  <p className="text-sm text-gray-500 mt-2">
+    Photo by{' '}
+    <a href={article.imageAuthorUrl} target="_blank" rel="noopener noreferrer">
+      {article.imageAuthor}
+    </a>{' '}
+    on{' '}
+    <a href={article.imageUnsplashUrl} target="_blank" rel="noopener noreferrer">
+      Unsplash
+    </a>
+  </p>
+)}
+```
+
+---
+
+### ✅ 前端对接完整检查清单
+
+在提交代码或上线前，逐项确认：
+
+- [ ] **路由排除**：`index.html` 第一个 `<script>` 中已加入 `/admin/` 路径检测代码
+- [ ] **开发代理**：dev server 已将 `/api` 代理到后端（如 `http://localhost:3001`）
+- [ ] **Nginx 配置**：`/admin/` location 在 `/` 之前定义，使用 `alias` 而非 `root`
+- [ ] **验证码流程**：联系表单先 `GET /api/captcha`，再将 `captchaId` 和 `captchaText` 随表单一起提交
+- [ ] **HTML 渲染**：文章 `content` 字段通过 `innerHTML` 或 `dangerouslySetInnerHTML` 渲染，而非作为纯文本显示
+- [ ] **Unsplash 署名**：文章列表页和详情页均已实现条件渲染署名逻辑
+- [ ] **后台入口**：前端页面（如 Footer 或导航）有指向 `/admin/login.html` 的链接
+- [ ] **API Base URL**：前端代码中 API 路径使用相对路径 `/api`，不硬编码域名
+
+---
+
 **文档版本**: v1.0  
-**最后更新**: 2026-02-25  
+**最后更新**: 2026-03-01  
 **维护者**: AI Development Team
