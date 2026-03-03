@@ -739,3 +739,101 @@ await fetch('/api/contact', {
 **文档版本**: v1.0  
 **最后更新**: 2026-03-01  
 **维护者**: AI Development Team
+
+
+---
+
+### ⚠️ 问题5.5：营销来源追踪（UTM）未正确传递
+
+**问题描述**：从百度广告等带 UTM 参数的 URL 访问网站并提交表单后，后台「线索管理」中显示的来源是「直接访问」，而不是预期的「💰 baidu 广告」。
+
+**根本原因**：前端在提交联系表单时，没有从当前页面 URL 中读取 UTM 参数，并将其放入 `POST /api/contact` 请求体的 `trafficSource` 字段中。
+
+**标准实现**：前端必须在用户**首次进入网站时**，从 `window.location.search` 中解析所有 `utm_` 参数，连同 `document.referrer` 一起，存入一个对象，并保存在 `localStorage` 中。在提交联系表单时，从 `localStorage` 中读取这个对象，并作为 `trafficSource` 字段发送给后端。
+
+**`trafficSource` 对象结构**（前端发送给后端）：
+
+```json
+{
+  "source": "baidu",
+  "medium": "cpc",
+  "campaign": "spring_promo",
+  "keyword": "AI阅卷",
+  "referrer": "https://www.baidu.com/s?wd=..."
+}
+```
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `source` | string | 对应 `utm_source` |
+| `medium` | string | 对应 `utm_medium` |
+| `campaign` | string | 对应 `utm_campaign` |
+| `keyword` | string | 对应 `utm_term` 或 `utm_keyword` |
+| `referrer` | string | **必须包含** `document.referrer` |
+
+**后端识别逻辑**：后端会综合 `source`、`medium` 和 `referrer` 字段来判断流量类型（付费广告、自然搜索、引荐、直接访问）。即使 `source` 和 `medium` 为空，只要 `referrer` 包含 `baidu.com`，后端也能识别为百度自然搜索。
+
+---
+
+### 🧪 如何测试来源追踪功能
+
+在开发和测试阶段，无需花费广告费。可以使用以下方法模拟不同来源：
+
+#### 方法一：URL 加 UTM 参数（模拟付费广告）
+
+直接在你的网站 URL 后面加上 UTM 参数，然后访问并提交表单。
+
+- **模拟百度广告**：
+  ```
+  https://your-domain.com/?utm_source=baidu&utm_medium=cpc&utm_campaign=test
+  ```
+  提交后，后台应显示 `💰 baidu 广告`。
+
+- **模拟谷歌广告**：
+  ```
+  https://your-domain.com/?utm_source=google&utm_medium=cpc&utm_campaign=test
+  ```
+  提交后，后台应显示 `💰 google 广告`。
+
+#### 方法二：浏览器控制台注入（模拟自然搜索）
+
+自然搜索没有 UTM 参数，依赖 `referrer`。可以在浏览器开发者工具的 Console 中执行以下代码，手动模拟来自百度的自然搜索点击。
+
+1. 打开你的网站
+2. 按 F12 打开开发者工具，切换到 Console 标签页
+3. 粘贴并执行以下代码：
+   ```javascript
+   localStorage.setItem('traffic_source', JSON.stringify({
+     source: '',
+     medium: 'organic',
+     referrer: 'https://www.baidu.com/s?wd=AI阅卷',
+     timestamp: new Date().toISOString()
+   }));
+   console.log('已模拟百度自然搜索来源');
+   ```
+4. 刷新页面，然后提交联系表单。后台应显示 `🔍 Baidu 自然搜索`。
+
+#### 方法三：使用 curl 直接调用 API（最精准）
+
+适合开发者进行精准、可重复的测试。
+
+```bash
+# 1. 获取验证码
+CAPTCHA_ID=$(curl -s https://your-domain.com/api/captcha | jq -r '.captchaId')
+
+# 2. 提交表单（手动填入验证码）
+curl -X POST https://your-domain.com/api/contact \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "百度广告测试",
+    "email": "test@example.com",
+    "captchaId": "'$CAPTCHA_ID'",
+    "captchaText": "...",
+    "trafficSource": {
+      "source": "baidu",
+      "medium": "cpc",
+      "campaign": "品牌词",
+      "referrer": "https://www.baidu.com/"
+    }
+  }'
+```
