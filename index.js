@@ -924,27 +924,69 @@ app.post('/api/contact', async (req, res) => {
     
     if (contactData.trafficSource) {
       const ts = contactData.trafficSource;
+      // 兼容两种字段命名：前端传 source/medium/campaign/keyword，或标准 utm_source/utm_medium 等
       utmData = {
         utm_source: ts.utm_source || ts.source || '',
         utm_medium: ts.utm_medium || ts.medium || '',
         utm_campaign: ts.utm_campaign || ts.campaign || '',
         utm_term: ts.utm_term || ts.keyword || '',
-        utm_content: ts.utm_content || ''
+        utm_content: ts.utm_content || '',
+        referrer: ts.referrer || ''
       };
       
       // 判断流量类型
-      const source = utmData.utm_source.toLowerCase();
-      const medium = utmData.utm_medium.toLowerCase();
+      const source = (utmData.utm_source || '').toLowerCase();
+      const medium = (utmData.utm_medium || '').toLowerCase();
+      const referrer = (utmData.referrer || '').toLowerCase();
       
-      if (medium.includes('cpc') || medium.includes('ppc') || medium.includes('paid') || medium.includes('ad')) {
+      // 搜索引擎列表
+      const searchEngines = ['baidu', 'google', 'bing', 'sogou', 'so.com', 'sm.cn', 'yandex', 'duckduckgo', 'yahoo'];
+      const isSearchEngine = searchEngines.some(se => source.includes(se));
+      
+      // referrer 中的搜索引擎识别（当 utm_source 为空时使用）
+      const referrerEngineMap = {
+        'baidu.com': 'Baidu', 'google.': 'Google', 'bing.com': 'Bing',
+        'sogou.com': 'Sogou', 'so.com': '360搜索', 'sm.cn': '神马搜索',
+        'yahoo.com': 'Yahoo', 'yandex.': 'Yandex', 'duckduckgo.com': 'DuckDuckGo'
+      };
+      
+      // 付费广告判断（优先级最高）：medium 包含 cpc/ppc/paid/ad，或 source 是百度且 medium 不为空
+      const isPaid = medium.includes('cpc') || medium.includes('ppc') ||
+                     medium.includes('paid') || medium.includes('ad') ||
+                     (source.includes('baidu') && medium && medium !== 'organic');
+      
+      if (isPaid) {
         trafficType = 'paid';
-        sourceInfo = `💰 ${utmData.utm_source || '未知'} 广告`;
-      } else if (source.includes('baidu') || source.includes('google') || source.includes('bing')) {
+        const sourceName = utmData.utm_source || '未知';
+        sourceInfo = `💰 ${sourceName} 广告`;
+      } else if (source && isSearchEngine) {
         trafficType = 'organic';
         sourceInfo = `🔍 ${utmData.utm_source} 自然搜索`;
       } else if (source) {
         trafficType = 'referral';
         sourceInfo = `🔗 ${utmData.utm_source}`;
+      } else if (referrer) {
+        // utm_source 为空时，尝试从 referrer 识别搜索引擎
+        let detectedEngine = null;
+        for (const [domain, name] of Object.entries(referrerEngineMap)) {
+          if (referrer.includes(domain)) {
+            detectedEngine = name;
+            break;
+          }
+        }
+        if (detectedEngine) {
+          trafficType = 'organic';
+          sourceInfo = `🔍 ${detectedEngine} 自然搜索`;
+          utmData.utm_source = detectedEngine.toLowerCase();
+          utmData.utm_medium = 'organic';
+        } else {
+          trafficType = 'referral';
+          try {
+            sourceInfo = `🔗 ${new URL(utmData.referrer).hostname.replace('www.', '')}`;
+          } catch {
+            sourceInfo = `🔗 ${utmData.referrer}`;
+          }
+        }
       }
       
       // 添加详细信息
